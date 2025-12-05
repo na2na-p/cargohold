@@ -1,0 +1,14 @@
+# =====================================
+# cargohold - CI環境用オーバーライド設定
+# =====================================
+# GitHub Actions CacheをDockerビルドで使用するための設定
+# 使用方法:
+#   COMPOSE_FILE="compose.yml:compose.dev.yml:compose.ci.yml" docker compose up --build
+
+services:
+  cargohold:
+    build:
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max

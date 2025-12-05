@@ -1,0 +1,123 @@
+# =====================================
+# cargohold - ベース/ローカル開発用Docker Compose設定
+# =====================================
+# このファイルはローカル開発およびテスト用のベース設定です。
+# 本番環境ではシークレット管理サービス（Docker Secrets、Vault等）を使用してください。
+# 参考: https://docs.docker.com/engine/swarm/secrets/
+#
+# 開発/テスト環境での起動:
+#   docker compose -f compose.yml -f compose.dev.yml up
+#
+# E2Eテスト実行:
+#   docker compose -f compose.yml -f compose.dev.yml --profile e2e run --rm e2e-test
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: cargohold-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: cargohold
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cargohold_dev_password}
+      POSTGRES_DB: cargohold
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cargohold"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cargohold-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: cargohold-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cargohold-network
+    restart: unless-stopped
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    container_name: cargohold-seaweedfs
+    ports:
+      - "9000:8333"    # S3 API (外部9000 -> 内部8333)
+      - "9333:9333"    # Master
+    command: server -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json -dir=/data
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin_dev_password}
+    volumes:
+      - seaweedfs_data:/data
+      - ./config/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "-O", "/dev/null", "http://127.0.0.1:9333/cluster/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cargohold-network
+    restart: unless-stopped
+
+  cargohold:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cargohold-app
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: cargohold
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-cargohold_dev_password}
+      DATABASE_DBNAME: cargohold
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+      S3_ENDPOINT: http://seaweedfs:8333
+      S3_ACCESSKEYID: minioadmin
+      S3_SECRETACCESSKEY: ${S3_SECRETACCESSKEY:-minioadmin_dev_password}
+      S3_BUCKETNAME: lfs-objects
+      S3_REGION: us-east-1
+      PORT: 8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - cargohold-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  seaweedfs_data:
+    driver: local
+
+networks:
+  cargohold-network:
+    driver: bridge
