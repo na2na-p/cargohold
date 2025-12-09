@@ -2,18 +2,13 @@ name: CI for Pull Requests
 
 on:
   pull_request:
-    branches: [ main ]
-    paths:
-      - '**/*.go'
-      - 'go.mod'
-      - 'go.sum'
-      - '.golangci.yml'
-      - '.github/workflows/**'
-      - 'e2e/**'
-      - 'compose.yml'
-      - 'Dockerfile'
-      - 'config/**'
-      - 'migrations/**'
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
 
 permissions:
   contents: read
