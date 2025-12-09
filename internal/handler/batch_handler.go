@@ -1,0 +1,88 @@
+//go:generate mockgen -source=$GOFILE -destination=../../tests/handler/mock_batch_handler.go -package=handler
+package handler
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+	"github.com/na2na-p/cargohold/internal/handler/dto"
+	"github.com/na2na-p/cargohold/internal/handler/middleware"
+	"github.com/na2na-p/cargohold/internal/usecase"
+)
+
+const maxBodySize = 10 << 20
+
+type BatchUseCaseInterface interface {
+	HandleBatchRequest(ctx context.Context, req usecase.BatchRequest) (usecase.BatchResponse, error)
+}
+
+type BatchHandler struct {
+	batchUseCase BatchUseCaseInterface
+}
+
+func NewBatchHandler(batchUseCase BatchUseCaseInterface) *BatchHandler {
+	return &BatchHandler{
+		batchUseCase: batchUseCase,
+	}
+}
+
+func (h *BatchHandler) Handle(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	if err := ValidateLFSHeaders(c); err != nil {
+		return SendLFSError(c, http.StatusBadRequest, err.Error())
+	}
+
+	repoID, err := ExtractRepositoryIdentifier(c)
+	if err != nil {
+		return SendLFSError(c, http.StatusBadRequest, "リポジトリ識別子の形式が不正です")
+	}
+
+	var reqDTO dto.BatchRequestDTO
+	bodyBytes, readErr := io.ReadAll(io.LimitReader(c.Request().Body, maxBodySize+1))
+	if readErr != nil {
+		return SendLFSError(c, http.StatusUnprocessableEntity, "リクエストボディのパースに失敗しました")
+	}
+	if len(bodyBytes) > maxBodySize {
+		return SendLFSError(c, http.StatusRequestEntityTooLarge, "リクエストボディが大きすぎます")
+	}
+	if err := json.Unmarshal(bodyBytes, &reqDTO); err != nil {
+		return SendLFSError(c, http.StatusUnprocessableEntity, "リクエストボディのパースに失敗しました")
+	}
+
+	req, err := reqDTO.ToBatchRequest(repoID)
+	if err != nil {
+		return SendLFSError(c, http.StatusUnprocessableEntity, "リクエストボディのパースに失敗しました")
+	}
+
+	resp, err := h.batchUseCase.HandleBatchRequest(ctx, req)
+	if err != nil {
+		return h.handleUseCaseError(c, err)
+	}
+
+	c.Response().Header().Set(echo.HeaderContentType, GitLFSContentType)
+	return c.JSON(http.StatusOK, resp)
+}
+
+func (h *BatchHandler) handleUseCaseError(_ echo.Context, err error) error {
+	switch {
+	case errors.Is(err, usecase.ErrInvalidOperation):
+		return middleware.NewAppError(http.StatusUnprocessableEntity, "不正なオペレーションです", err)
+	case errors.Is(err, usecase.ErrNoObjects):
+		return middleware.NewAppError(http.StatusUnprocessableEntity, "オブジェクトが指定されていません", err)
+	case errors.Is(err, usecase.ErrInvalidOID):
+		return middleware.NewAppError(http.StatusUnprocessableEntity, "不正なOIDです", err)
+	case errors.Is(err, usecase.ErrInvalidSize):
+		return middleware.NewAppError(http.StatusUnprocessableEntity, "不正なサイズです", err)
+	case errors.Is(err, usecase.ErrInvalidHashAlgorithm):
+		return middleware.NewAppError(http.StatusUnprocessableEntity, "不正なハッシュアルゴリズムです", err)
+	case errors.Is(err, usecase.ErrAccessDenied):
+		return middleware.NewAppError(http.StatusForbidden, "アクセスが拒否されました", err)
+	default:
+		return middleware.NewAppError(http.StatusInternalServerError, "サーバー内部エラーが発生しました", err)
+	}
+}

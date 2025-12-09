@@ -1,0 +1,95 @@
+# =====================================
+# Go関連
+# =====================================
+
+# ビルド成果物（バイナリファイル）
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# テストキャッシュ・カバレッジファイル
+*.test
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Go ワークスペースファイル
+go.work
+go.work.sum
+
+# =====================================
+# 開発ツール関連
+# =====================================
+
+# IDE設定ファイル
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS固有ファイル
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# =====================================
+# 環境変数・シークレット
+# =====================================
+
+# 環境変数ファイル
+.env
+.env.local
+.env.*.local
+
+# 認証情報ファイル
+credentials.json
+secrets.yaml
+*.pem
+*.key
+
+# =====================================
+# ログ・一時ファイル
+# =====================================
+
+# ログファイル
+*.log
+logs/
+log/
+
+# 一時ファイル
+tmp/
+temp/
+*.tmp
+
+# =====================================
+# E2Eテスト関連
+# =====================================
+
+# E2Eテスト用一時ファイル
+e2e/testdata/
+e2e/*.bin
+e2e/*.tmp
+e2e/temp/
+
+# テスト用生成ファイル
+test-*.bin
+test-*.dat
+
+.cursor
+.mcp.json
+CLAUDE.md
+.serena
+docs/
+
+aqua.yaml
+aqua-policy.yaml
+registry.yaml
+main

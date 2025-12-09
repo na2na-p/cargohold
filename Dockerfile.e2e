@@ -1,0 +1,14 @@
+FROM golang:1.25.5-alpine
+
+WORKDIR /app
+
+# git: Goモジュールのダウンロードに必要
+# ca-certificates: HTTPS通信に必要
+RUN apk add --no-cache git ca-certificates
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+CMD ["go", "test", "-v", "-tags=e2e", "./e2e/..."]

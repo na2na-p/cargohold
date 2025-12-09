@@ -1,0 +1,109 @@
+# =====================================
+# cargohold - 開発/テスト環境用オーバーライド設定
+# =====================================
+# 使用方法:
+#   1. .env.example を .env にコピーして値を設定
+#   2. docker compose -f compose.yml -f compose.dev.yml up
+#
+# E2Eテスト実行:
+#   docker compose -f compose.yml -f compose.dev.yml --profile e2e run --rm e2e-test
+
+services:
+  jwks-mock:
+    image: nginx:alpine
+    container_name: cargohold-jwks-mock
+    ports:
+      - "8888:80"
+    volumes:
+      - ./config/jwks-mock/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./e2e/testdata/jwks.json:/etc/nginx/jwks/jwks.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cargohold-network
+    restart: unless-stopped
+
+  migrate:
+    image: migrate/migrate:v4.17.0
+    container_name: cargohold-migrate
+    volumes:
+      - ./migrations:/migrations:ro
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://cargohold:${POSTGRES_PASSWORD:-cargohold_dev_password}@postgres:5432/cargohold?sslmode=disable"
+      - "up"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cargohold-network
+
+  s3-init:
+    image: amazon/aws-cli:latest
+    container_name: cargohold-s3-init
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin_dev_password}
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: >
+      sh -c "
+        echo 'SeaweedFS S3 APIの起動を待機中...' &&
+        sleep 5 &&
+        aws --endpoint-url=http://seaweedfs:8333 s3 mb s3://lfs-objects 2>/dev/null || true &&
+        echo 'バケット初期化完了'
+      "
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+    networks:
+      - cargohold-network
+
+  cargohold:
+    environment:
+      OIDC_GITHUB_AUDIENCE: cargohold
+      OIDC_GITHUB_JWKSURL: http://jwks-mock/.well-known/jwks
+      AUTH_USERS_TESTUSER: ${AUTH_TESTUSER_PASSWORD:-testuser_dev_password}
+    volumes:
+      - ./config.e2e.yaml:/app/config/config.yaml:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      s3-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+      jwks-mock:
+        condition: service_healthy
+
+  e2e-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.e2e
+    container_name: cargohold-e2e-test
+    environment:
+      E2E_TEST_TEMP_DIR: /tmp/e2e
+      E2E_TEST_ENDPOINT: http://cargohold:8080
+      E2E_TEST_USERNAME: testuser
+      E2E_TEST_PASSWORD: ${AUTH_TESTUSER_PASSWORD:-testuser_dev_password}
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: cargohold
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-cargohold_dev_password}
+      DATABASE_DBNAME: cargohold
+    depends_on:
+      cargohold:
+        condition: service_healthy
+    networks:
+      - cargohold-network
+    volumes:
+      - ./e2e:/app/e2e:ro
+      - ./tests:/app/tests:ro
+    profiles:
+      - e2e

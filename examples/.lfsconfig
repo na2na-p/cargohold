@@ -1,0 +1,32 @@
+# ==============================================
+# Git LFS 設定ファイル (.lfsconfig)
+# ==============================================
+# このファイルをリポジトリのルートに配置することで、
+# Git LFS クライアントが cargohold サーバーを使用するように設定されます。
+#
+# 使い方:
+#   1. このファイルをリポジトリのルートにコピー
+#   2. URL を実際の cargohold サーバーの URL に変更
+#   3. git lfs install を実行
+#   4. .gitattributes で追跡するファイルパターンを設定
+#
+# 参考: https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-config.adoc
+
+[lfs]
+    # cargohold サーバーの URL
+    # 本番環境の URL に変更してください
+    url = https://cargohold.example.com/info/lfs
+
+    # ローカル開発環境の場合
+    # url = http://localhost:8080/info/lfs
+
+    # 転送アダプター（basic のみサポート）
+    # 通常は指定不要（デフォルト: basic）
+    # transfer = basic
+
+    # バッチリクエストのタイムアウト（秒）
+    # 大容量ファイルを扱う場合は増やすことを推奨
+    # activitytimeout = 30
+
+    # 同時転送数
+    # concurrenttransfers = 8

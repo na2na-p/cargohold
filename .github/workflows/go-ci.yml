@@ -1,0 +1,205 @@
+name: Go CI
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: "Working directory for the component"
+        required: false
+        type: string
+        default: "."
+      component-name:
+        description: "Name of the component"
+        required: true
+        type: string
+      timeout-minutes:
+        description: "Timeout in minutes for each job"
+        required: false
+        type: number
+        default: 30
+
+env:
+  GO_VERSION: "1.25.5"
+
+jobs:
+  fmt:
+    name: Format Check
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Check formatting
+        run: |
+          unformatted=$(gofmt -s -l .)
+          if [ -n "$unformatted" ]; then
+            echo "以下のファイルがフォーマットされていません:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+  vet:
+    name: Vet
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run go vet
+        run: go vet ./...
+
+  golangci-lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          working-directory: ${{ inputs.working-directory }}
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: ${{ inputs.working-directory }}/go.sum
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Check go mod tidy
+        run: |
+          go mod tidy
+          if [ -n "$(git diff --name-only go.mod go.sum)" ]; then
+            echo "go.mod または go.sum が最新ではありません。go mod tidy を実行してください。"
+            git diff go.mod go.sum
+            exit 1
+          fi
+
+      - name: Check for go:generate directives
+        id: check-generate
+        run: |
+          if grep -r "//go:generate" --include="*.go" . > /dev/null 2>&1; then
+            echo "has_generate=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_generate=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install mockgen
+        if: steps.check-generate.outputs.has_generate == 'true'
+        run: go install go.uber.org/mock/mockgen@latest
+
+      - name: Run go generate
+        if: steps.check-generate.outputs.has_generate == 'true'
+        run: go generate ./...
+
+      - name: Install gcc for race detection
+        run: sudo apt-get update && sudo apt-get install -y gcc
+
+      - name: Run race detection tests (run 1/3)
+        run: |
+          go clean -testcache
+          go test -race ./...
+
+      - name: Run race detection tests (run 2/3)
+        run: |
+          go clean -testcache
+          go test -race ./...
+
+      - name: Run race detection tests (run 3/3)
+        run: |
+          go clean -testcache
+          go test -race ./...
+
+      - name: Run tests with coverage
+        run: go test -v -coverprofile=coverage.out -coverpkg=./internal/... ./...
+
+      - name: Display coverage
+        run: go tool cover -func=coverage.out
+
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Total coverage: ${COVERAGE}%"
+          THRESHOLD=70
+          if [ -z "$COVERAGE" ]; then
+            echo "カバレッジを取得できませんでした"
+            exit 1
+          fi
+          if [ "$(echo "$COVERAGE < $THRESHOLD" | bc -l)" -eq 1 ]; then
+            echo "カバレッジが閾値 ${THRESHOLD}% を下回っています: ${COVERAGE}%"
+            exit 1
+          fi
+          echo "カバレッジが閾値 ${THRESHOLD}% を満たしています: ${COVERAGE}%"
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: ${{ inputs.working-directory }}/go.sum
+
+      - name: Build all packages
+        run: go build -v ./...
+
+      - name: Build main.go if exists
+        run: |
+          if [ -f "main.go" ]; then
+            go build -v -o app main.go
+            echo "main.go のビルドに成功しました"
+          else
+            echo "main.go が存在しないため、スキップします"
+          fi
