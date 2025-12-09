@@ -39,7 +39,10 @@ jobs:
             e2e-tests:
               - 'e2e/**'
               - 'compose.yml'
+              - 'compose.dev.yml'
+              - 'compose.ci.yml'
               - 'Dockerfile'
+              - '.env.example'
               - 'config/**'
               - 'migrations/**'
               - '**/*.go'
