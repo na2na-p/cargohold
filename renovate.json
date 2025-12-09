@@ -4,8 +4,8 @@
     "config:recommended",
     "group:allNonMajor",
     ":timezone(Asia/Tokyo)",
-    ":prHourlyLimitNone",
-    ":gomodTidy"
+    ":prHourlyLimitNone"
   ],
+  "postUpdateOptions": ["gomodTidy"],
   "minimumReleaseAge": "7 days"
 }
