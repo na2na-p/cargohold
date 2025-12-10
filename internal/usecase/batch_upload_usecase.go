@@ -10,7 +10,7 @@ import (
 )
 
 type BatchUploadUseCase interface {
-	HandleBatchUpload(ctx context.Context, req BatchRequest) (BatchResponse, error)
+	HandleBatchUpload(ctx context.Context, baseURL, owner, repo string, req BatchRequest) (BatchResponse, error)
 }
 
 type batchUploadUseCaseImpl struct {
@@ -31,7 +31,7 @@ func NewBatchUploadUseCase(
 	}
 }
 
-func (uc *batchUploadUseCaseImpl) HandleBatchUpload(ctx context.Context, req BatchRequest) (BatchResponse, error) {
+func (uc *batchUploadUseCaseImpl) HandleBatchUpload(ctx context.Context, baseURL, owner, repo string, req BatchRequest) (BatchResponse, error) {
 	if err := req.Validate(); err != nil {
 		return BatchResponse{}, err
 	}
@@ -66,7 +66,7 @@ func (uc *batchUploadUseCaseImpl) HandleBatchUpload(ctx context.Context, req Bat
 			return BatchResponse{}, ErrAccessDenied
 		}
 
-		respObj := uc.uploadUseCase.HandleUploadObject(ctx, oid, size, hashAlgo)
+		respObj := uc.uploadUseCase.HandleUploadObject(ctx, baseURL, owner, repo, oid, size, hashAlgo)
 		if authResult.IsNewObject && respObj.Error() == nil {
 			if err := uc.createAccessPolicy(ctx, oid, req.Repository()); err != nil {
 				return BatchResponse{}, fmt.Errorf("アクセスポリシーの作成に失敗しました: %w", err)

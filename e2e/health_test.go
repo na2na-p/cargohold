@@ -1,6 +1,6 @@
 //go:build e2e
 
-package e2e_test
+package e2e
 
 import (
 	"encoding/json"
@@ -11,19 +11,18 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/na2na-p/cargohold/e2e"
 )
 
 func GetHealthzEndpoint() string {
-	return fmt.Sprintf("%s/healthz", e2e.GetBaseEndpoint())
+	return fmt.Sprintf("%s/healthz", GetBaseEndpoint())
 }
 
 func GetReadyzEndpoint() string {
-	return fmt.Sprintf("%s/readyz", e2e.GetBaseEndpoint())
+	return fmt.Sprintf("%s/readyz", GetBaseEndpoint())
 }
 
 func TestHealthzEndpoint_Get(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -78,7 +77,7 @@ func TestHealthzEndpoint_Get(t *testing.T) {
 }
 
 func TestReadyzEndpoint_Get(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 

@@ -1,6 +1,6 @@
 //go:build e2e
 
-package e2e_test
+package e2e
 
 import (
 	"bytes"
@@ -11,11 +11,11 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/na2na-p/cargohold/e2e"
 )
 
 type BatchResponse struct {
@@ -48,7 +48,7 @@ type ObjectError struct {
 }
 
 func TestBatchAPI_ResponseFieldValidation(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -132,9 +132,9 @@ func TestBatchAPI_ResponseFieldValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repository := "na2na-p/test-repo"
 			ref := "refs/heads/main"
-			endpoint := e2e.GetBatchEndpoint(repository)
+			endpoint := GetBatchEndpoint(repository)
 
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", repository, ref),
 				"aud":        "cargohold",
@@ -224,7 +224,7 @@ func TestBatchAPI_ResponseFieldValidation(t *testing.T) {
 }
 
 func TestBatchAPI_MultipleObjects(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -281,9 +281,9 @@ func TestBatchAPI_MultipleObjects(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repository := "na2na-p/test-repo"
 			ref := "refs/heads/main"
-			endpoint := e2e.GetBatchEndpoint(repository)
+			endpoint := GetBatchEndpoint(repository)
 
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", repository, ref),
 				"aud":        "cargohold",
@@ -377,7 +377,7 @@ func TestBatchAPI_MultipleObjects(t *testing.T) {
 }
 
 func TestBatchAPI_MultipleObjectsDownload(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -402,9 +402,9 @@ func TestBatchAPI_MultipleObjectsDownload(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repository := "na2na-p/test-repo"
 			ref := "refs/heads/main"
-			endpoint := e2e.GetBatchEndpoint(repository)
+			endpoint := GetBatchEndpoint(repository)
 
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", repository, ref),
 				"aud":        "cargohold",
@@ -416,24 +416,24 @@ func TestBatchAPI_MultipleObjectsDownload(t *testing.T) {
 				t.Fatalf("GenerateJWT() error = %v", err)
 			}
 
-			testFile1, err := e2e.CreateTestFile(1024)
+			testFile1, err := CreateTestFile(1024)
 			if err != nil {
 				t.Fatalf("CreateTestFile() error = %v", err)
 			}
-			defer func() { _ = e2e.CleanupTestFiles(testFile1) }()
+			defer func() { _ = CleanupTestFiles(testFile1) }()
 
-			testFile2, err := e2e.CreateTestFile(2048)
+			testFile2, err := CreateTestFile(2048)
 			if err != nil {
 				t.Fatalf("CreateTestFile() error = %v", err)
 			}
-			defer func() { _ = e2e.CleanupTestFiles(testFile2) }()
+			defer func() { _ = CleanupTestFiles(testFile2) }()
 
-			oid1, size1, err := e2e.CalculateFileHash(testFile1)
+			oid1, size1, err := CalculateFileHash(testFile1)
 			if err != nil {
 				t.Fatalf("CalculateFileHash() error = %v", err)
 			}
 
-			oid2, size2, err := e2e.CalculateFileHash(testFile2)
+			oid2, size2, err := CalculateFileHash(testFile2)
 			if err != nil {
 				t.Fatalf("CalculateFileHash() error = %v", err)
 			}
@@ -504,7 +504,7 @@ func TestBatchAPI_MultipleObjectsDownload(t *testing.T) {
 }
 
 func TestBatchAPI_DownloadUnauthorizedObjects(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -547,9 +547,9 @@ func TestBatchAPI_DownloadUnauthorizedObjects(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repository := "na2na-p/test-repo"
 			ref := "refs/heads/main"
-			endpoint := e2e.GetBatchEndpoint(repository)
+			endpoint := GetBatchEndpoint(repository)
 
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", repository, ref),
 				"aud":        "cargohold",
@@ -611,8 +611,8 @@ func uploadTestObject(batchEndpoint, token, oid string, size int64, filepath str
 		return fmt.Errorf("requestBatchAPIForURL() error = %w", err)
 	}
 
-	if err := uploadFileToS3ForTest(uploadURL, filepath); err != nil {
-		return fmt.Errorf("uploadFileToS3ForTest() error = %w", err)
+	if err := uploadFileToProxyForTest(uploadURL, filepath, token); err != nil {
+		return fmt.Errorf("uploadFileToProxyForTest() error = %w", err)
 	}
 
 	verifyEndpoint, err := buildVerifyEndpointForTest(batchEndpoint)
@@ -694,7 +694,7 @@ func requestBatchAPIForURL(endpoint, token, operation, oid string, size int64) (
 	return "", fmt.Errorf("対応するアクションがありません")
 }
 
-func uploadFileToS3ForTest(uploadURL, filepath string) error {
+func uploadFileToProxyForTest(uploadURL, filepath, token string) error {
 	file, err := os.Open(filepath)
 	if err != nil {
 		return fmt.Errorf("ファイルを開けませんでした: %w", err)
@@ -711,8 +711,12 @@ func uploadFileToS3ForTest(uploadURL, filepath string) error {
 		return fmt.Errorf("リクエストの作成に失敗しました: %w", err)
 	}
 
-	req.ContentLength = fileInfo.Size()
+	req.Header.Set("Accept", "application/vnd.git-lfs+json")
 	req.Header.Set("Content-Type", "application/octet-stream")
+	if token != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	}
+	req.ContentLength = fileInfo.Size()
 
 	client := &http.Client{Timeout: 5 * time.Minute}
 	resp, err := client.Do(req)
@@ -721,7 +725,7 @@ func uploadFileToS3ForTest(uploadURL, filepath string) error {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusNoContent {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("アップロードに失敗しました: status=%d, body=%s", resp.StatusCode, string(body))
 	}
@@ -774,4 +778,257 @@ func verifyUploadForTest(verifyEndpoint, token, oid string, size int64) error {
 	}
 
 	return nil
+}
+
+func TestBatchAPI_ProxyEndpointURLFormat(t *testing.T) {
+	if err := SetupE2EEnvironment(); err != nil {
+		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
+	}
+
+	validOID := "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+
+	type args struct {
+		operation string
+		oid       string
+		size      int64
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "正常系: uploadレスポンスURLがProxyエンドポイント形式であること",
+			args: args{
+				operation: "upload",
+				oid:       validOID,
+				size:      1024,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repository := "na2na-p/test-repo"
+			ref := "refs/heads/main"
+			endpoint := GetBatchEndpoint(repository)
+
+			token, err := GenerateJWT(map[string]interface{}{
+				"iss":        "https://token.actions.githubusercontent.com",
+				"sub":        fmt.Sprintf("repo:%s:ref:%s", repository, ref),
+				"aud":        "cargohold",
+				"repository": repository,
+				"ref":        ref,
+				"actor":      "github-actions[bot]",
+			})
+			if err != nil {
+				t.Fatalf("GenerateJWT() error = %v", err)
+			}
+
+			reqBody := map[string]interface{}{
+				"operation": tt.args.operation,
+				"objects": []map[string]interface{}{
+					{
+						"oid":  tt.args.oid,
+						"size": tt.args.size,
+					},
+				},
+				"transfers": []string{"basic"},
+				"hash_algo": "sha256",
+			}
+
+			jsonData, err := json.Marshal(reqBody)
+			if err != nil {
+				t.Fatalf("json.Marshal() error = %v", err)
+			}
+
+			req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(jsonData))
+			if err != nil {
+				t.Fatalf("http.NewRequest() error = %v", err)
+			}
+
+			req.Header.Set("Accept", "application/vnd.git-lfs+json")
+			req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+
+			client := &http.Client{Timeout: 30 * time.Second}
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatalf("client.Do() error = %v", err)
+			}
+			defer func() { _ = resp.Body.Close() }()
+
+			if resp.StatusCode != http.StatusOK {
+				body, _ := io.ReadAll(resp.Body)
+				t.Fatalf("Batch APIがエラーを返しました: status=%d, body=%s", resp.StatusCode, string(body))
+			}
+
+			var batchResp BatchResponse
+			if err := json.NewDecoder(resp.Body).Decode(&batchResp); err != nil {
+				t.Fatalf("json.Decode() error = %v", err)
+			}
+
+			if len(batchResp.Objects) == 0 {
+				t.Fatal("レスポンスにオブジェクトが含まれていません")
+			}
+
+			obj := batchResp.Objects[0]
+			if obj.Actions == nil {
+				t.Fatal("actionsフィールドが含まれていません")
+			}
+
+			if obj.Actions.Upload == nil {
+				t.Fatal("uploadアクションが含まれていません")
+			}
+
+			uploadURL := obj.Actions.Upload.Href
+
+			expectedURLPattern := fmt.Sprintf("/%s/info/lfs/objects/%s", repository, tt.args.oid)
+			if !strings.Contains(uploadURL, expectedURLPattern) {
+				t.Errorf("URLがProxyエンドポイント形式ではありません: got=%s, want contains=%s", uploadURL, expectedURLPattern)
+			}
+
+			s3Keywords := []string{
+				"s3.amazonaws.com",
+				"s3-",
+				".s3.",
+				"X-Amz-",
+				"amazonaws",
+				"minio",
+			}
+			for _, keyword := range s3Keywords {
+				if strings.Contains(uploadURL, keyword) {
+					t.Errorf("URLにS3関連の情報が含まれています: url=%s, keyword=%s", uploadURL, keyword)
+				}
+			}
+
+			baseURL := GetBaseEndpoint()
+			if !strings.HasPrefix(uploadURL, baseURL) {
+				t.Errorf("URLがベースURLから始まっていません: got=%s, want prefix=%s", uploadURL, baseURL)
+			}
+		})
+	}
+}
+
+func TestBatchAPI_DownloadProxyEndpointURLFormat(t *testing.T) {
+	if err := SetupE2EEnvironment(); err != nil {
+		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
+	}
+
+	tests := []struct {
+		name string
+	}{
+		{
+			name: "正常系: downloadレスポンスURLがProxyエンドポイント形式であること",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repository := "na2na-p/test-repo"
+			ref := "refs/heads/main"
+			endpoint := GetBatchEndpoint(repository)
+
+			token, err := GenerateJWT(map[string]interface{}{
+				"iss":        "https://token.actions.githubusercontent.com",
+				"sub":        fmt.Sprintf("repo:%s:ref:%s", repository, ref),
+				"aud":        "cargohold",
+				"repository": repository,
+				"ref":        ref,
+				"actor":      "github-actions[bot]",
+			})
+			if err != nil {
+				t.Fatalf("GenerateJWT() error = %v", err)
+			}
+
+			testFile, err := CreateTestFile(1024)
+			if err != nil {
+				t.Fatalf("CreateTestFile() error = %v", err)
+			}
+			defer func() { _ = CleanupTestFiles(testFile) }()
+
+			oid, size, err := CalculateFileHash(testFile)
+			if err != nil {
+				t.Fatalf("CalculateFileHash() error = %v", err)
+			}
+
+			if err := uploadTestObject(endpoint, token, oid, size, testFile); err != nil {
+				t.Fatalf("uploadTestObject() error = %v", err)
+			}
+
+			reqBody := map[string]interface{}{
+				"operation": "download",
+				"objects": []map[string]interface{}{
+					{"oid": oid, "size": size},
+				},
+				"transfers": []string{"basic"},
+				"hash_algo": "sha256",
+			}
+
+			jsonData, err := json.Marshal(reqBody)
+			if err != nil {
+				t.Fatalf("json.Marshal() error = %v", err)
+			}
+
+			req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(jsonData))
+			if err != nil {
+				t.Fatalf("http.NewRequest() error = %v", err)
+			}
+
+			req.Header.Set("Accept", "application/vnd.git-lfs+json")
+			req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+
+			client := &http.Client{Timeout: 30 * time.Second}
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatalf("client.Do() error = %v", err)
+			}
+			defer func() { _ = resp.Body.Close() }()
+
+			if resp.StatusCode != http.StatusOK {
+				body, _ := io.ReadAll(resp.Body)
+				t.Fatalf("Batch APIがエラーを返しました: status=%d, body=%s", resp.StatusCode, string(body))
+			}
+
+			var batchResp BatchResponse
+			if err := json.NewDecoder(resp.Body).Decode(&batchResp); err != nil {
+				t.Fatalf("json.Decode() error = %v", err)
+			}
+
+			if len(batchResp.Objects) == 0 {
+				t.Fatal("レスポンスにオブジェクトが含まれていません")
+			}
+
+			obj := batchResp.Objects[0]
+			if obj.Actions == nil || obj.Actions.Download == nil {
+				t.Fatal("downloadアクションが含まれていません")
+			}
+
+			downloadURL := obj.Actions.Download.Href
+
+			expectedURLPattern := fmt.Sprintf("/%s/info/lfs/objects/%s", repository, oid)
+			if !strings.Contains(downloadURL, expectedURLPattern) {
+				t.Errorf("URLがProxyエンドポイント形式ではありません: got=%s, want contains=%s", downloadURL, expectedURLPattern)
+			}
+
+			s3Keywords := []string{
+				"s3.amazonaws.com",
+				"s3-",
+				".s3.",
+				"X-Amz-",
+				"amazonaws",
+				"minio",
+			}
+			for _, keyword := range s3Keywords {
+				if strings.Contains(downloadURL, keyword) {
+					t.Errorf("URLにS3関連の情報が含まれています: url=%s, keyword=%s", downloadURL, keyword)
+				}
+			}
+
+			baseURL := GetBaseEndpoint()
+			if !strings.HasPrefix(downloadURL, baseURL) {
+				t.Errorf("URLがベースURLから始まっていません: got=%s, want prefix=%s", downloadURL, baseURL)
+			}
+		})
+	}
 }

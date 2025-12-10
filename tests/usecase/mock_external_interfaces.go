@@ -11,6 +11,7 @@ package usecase
 
 import (
 	context "context"
+	io "io"
 	reflect "reflect"
 	time "time"
 
@@ -307,4 +308,109 @@ func (m *MockS3Client) GeneratePutURL(ctx context.Context, key string, ttl time.
 func (mr *MockS3ClientMockRecorder) GeneratePutURL(ctx, key, ttl any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GeneratePutURL", reflect.TypeOf((*MockS3Client)(nil).GeneratePutURL), ctx, key, ttl)
+}
+
+// MockObjectStorage is a mock of ObjectStorage interface.
+type MockObjectStorage struct {
+	ctrl     *gomock.Controller
+	recorder *MockObjectStorageMockRecorder
+	isgomock struct{}
+}
+
+// MockObjectStorageMockRecorder is the mock recorder for MockObjectStorage.
+type MockObjectStorageMockRecorder struct {
+	mock *MockObjectStorage
+}
+
+// NewMockObjectStorage creates a new mock instance.
+func NewMockObjectStorage(ctrl *gomock.Controller) *MockObjectStorage {
+	mock := &MockObjectStorage{ctrl: ctrl}
+	mock.recorder = &MockObjectStorageMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockObjectStorage) EXPECT() *MockObjectStorageMockRecorder {
+	return m.recorder
+}
+
+// GetObject mocks base method.
+func (m *MockObjectStorage) GetObject(ctx context.Context, key string) (io.ReadCloser, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetObject", ctx, key)
+	ret0, _ := ret[0].(io.ReadCloser)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetObject indicates an expected call of GetObject.
+func (mr *MockObjectStorageMockRecorder) GetObject(ctx, key any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObject", reflect.TypeOf((*MockObjectStorage)(nil).GetObject), ctx, key)
+}
+
+// PutObject mocks base method.
+func (m *MockObjectStorage) PutObject(ctx context.Context, key string, body io.Reader) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PutObject", ctx, key, body)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PutObject indicates an expected call of PutObject.
+func (mr *MockObjectStorageMockRecorder) PutObject(ctx, key, body any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutObject", reflect.TypeOf((*MockObjectStorage)(nil).PutObject), ctx, key, body)
+}
+
+// MockActionURLGenerator is a mock of ActionURLGenerator interface.
+type MockActionURLGenerator struct {
+	ctrl     *gomock.Controller
+	recorder *MockActionURLGeneratorMockRecorder
+	isgomock struct{}
+}
+
+// MockActionURLGeneratorMockRecorder is the mock recorder for MockActionURLGenerator.
+type MockActionURLGeneratorMockRecorder struct {
+	mock *MockActionURLGenerator
+}
+
+// NewMockActionURLGenerator creates a new mock instance.
+func NewMockActionURLGenerator(ctrl *gomock.Controller) *MockActionURLGenerator {
+	mock := &MockActionURLGenerator{ctrl: ctrl}
+	mock.recorder = &MockActionURLGeneratorMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockActionURLGenerator) EXPECT() *MockActionURLGeneratorMockRecorder {
+	return m.recorder
+}
+
+// GenerateDownloadURL mocks base method.
+func (m *MockActionURLGenerator) GenerateDownloadURL(baseURL, owner, repo, oid string) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateDownloadURL", baseURL, owner, repo, oid)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GenerateDownloadURL indicates an expected call of GenerateDownloadURL.
+func (mr *MockActionURLGeneratorMockRecorder) GenerateDownloadURL(baseURL, owner, repo, oid any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateDownloadURL", reflect.TypeOf((*MockActionURLGenerator)(nil).GenerateDownloadURL), baseURL, owner, repo, oid)
+}
+
+// GenerateUploadURL mocks base method.
+func (m *MockActionURLGenerator) GenerateUploadURL(baseURL, owner, repo, oid string) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateUploadURL", baseURL, owner, repo, oid)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GenerateUploadURL indicates an expected call of GenerateUploadURL.
+func (mr *MockActionURLGeneratorMockRecorder) GenerateUploadURL(baseURL, owner, repo, oid any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateUploadURL", reflect.TypeOf((*MockActionURLGenerator)(nil).GenerateUploadURL), baseURL, owner, repo, oid)
 }

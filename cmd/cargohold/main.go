@@ -16,6 +16,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/na2na-p/cargohold/internal/config"
+	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler"
 	authMiddleware "github.com/na2na-p/cargohold/internal/handler/middleware"
 	"github.com/na2na-p/cargohold/internal/infrastructure"
@@ -24,6 +25,7 @@ import (
 	"github.com/na2na-p/cargohold/internal/infrastructure/postgres"
 	"github.com/na2na-p/cargohold/internal/infrastructure/redis"
 	"github.com/na2na-p/cargohold/internal/infrastructure/s3"
+	infraurl "github.com/na2na-p/cargohold/internal/infrastructure/url"
 	"github.com/na2na-p/cargohold/internal/usecase"
 )
 
@@ -113,6 +115,7 @@ func run() error {
 	cacheKeyGenerator := redis.NewCacheKeyGenerator()
 	cacheConfig := redis.NewCacheConfig()
 	storageKeyGenerator := s3.NewStorageKeyGenerator()
+	proxyActionURLGenerator := infraurl.NewProxyActionURLGenerator()
 
 	cachingRepo := infrastructure.NewCachingLFSObjectRepository(
 		lfsRepo,
@@ -123,8 +126,13 @@ func run() error {
 
 	cachingRepoAllowlist := infrastructure.NewCachingRepositoryAllowlist(repoAllowlistRepo, redisClient)
 	authUC := usecase.NewAuthUseCase(githubProvider, cachingRepoAllowlist, redisClient, cacheKeyGenerator)
-	batchUC := usecase.NewBatchUseCase(cachingRepo, s3Client, policyRepo, storageKeyGenerator)
+	batchUC := usecase.NewBatchUseCase(cachingRepo, proxyActionURLGenerator, policyRepo, storageKeyGenerator)
 	verifyUC := usecase.NewVerifyUseCase(cachingRepo, cachingRepo)
+
+	proxyAuthService := domain.NewAccessAuthorizationService(policyRepo)
+	proxyUploadUC := usecase.NewProxyUploadUseCase(cachingRepo, s3Client, proxyAuthService)
+	proxyDownloadUC := usecase.NewProxyDownloadUseCase(cachingRepo, s3Client, proxyAuthService)
+	proxyHandler := handler.NewProxyHandler(proxyUploadUC, proxyDownloadUC, cfg.Server.ProxyTimeout)
 
 	postgresHealthChecker := postgres.NewPostgresHealthChecker(pool)
 	redisHealthChecker := redis.NewRedisHealthChecker(redisClient)
@@ -163,6 +171,8 @@ func run() error {
 	lfsGroup.Use(authDispatcher)
 	lfsGroup.POST("/objects/batch", batchHandler.Handle)
 	lfsGroup.POST("/objects/verify", handler.VerifyHandler(verifyUC))
+	lfsGroup.PUT("/objects/:oid", proxyHandler.HandleUpload)
+	lfsGroup.GET("/objects/:oid", proxyHandler.HandleDownload)
 
 	port := os.Getenv("PORT")
 	if port == "" {

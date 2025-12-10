@@ -87,7 +87,6 @@ test-*.dat
 .mcp.json
 CLAUDE.md
 .serena
-docs/
 
 aqua.yaml
 aqua-policy.yaml

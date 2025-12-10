@@ -9,7 +9,7 @@ import (
 )
 
 type BatchDownloadUseCase interface {
-	HandleBatchDownload(ctx context.Context, req BatchRequest) (BatchResponse, error)
+	HandleBatchDownload(ctx context.Context, baseURL, owner, repo string, req BatchRequest) (BatchResponse, error)
 }
 
 type batchDownloadUseCaseImpl struct {
@@ -27,7 +27,7 @@ func NewBatchDownloadUseCase(
 	}
 }
 
-func (uc *batchDownloadUseCaseImpl) HandleBatchDownload(ctx context.Context, req BatchRequest) (BatchResponse, error) {
+func (uc *batchDownloadUseCaseImpl) HandleBatchDownload(ctx context.Context, baseURL, owner, repo string, req BatchRequest) (BatchResponse, error) {
 	if err := req.Validate(); err != nil {
 		return BatchResponse{}, err
 	}
@@ -62,7 +62,7 @@ func (uc *batchDownloadUseCaseImpl) HandleBatchDownload(ctx context.Context, req
 			return BatchResponse{}, ErrAccessDenied
 		}
 
-		respObj := uc.downloadUseCase.HandleDownloadObject(ctx, oid, size)
+		respObj := uc.downloadUseCase.HandleDownloadObject(ctx, baseURL, owner, repo, oid, size)
 		objects = append(objects, respObj)
 	}
 

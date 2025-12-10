@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/viper"
@@ -359,6 +360,116 @@ func TestS3Config_String(t *testing.T) {
 			got := tt.config.String()
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("String() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestLoad_ProxyTimeout(t *testing.T) {
+	tests := []struct {
+		name             string
+		configContent    string
+		wantProxyTimeout time.Duration
+	}{
+		{
+			name: "正常系: ProxyTimeoutが指定されていない場合、デフォルト値10分",
+			configContent: `
+database:
+  host: localhost
+  port: 5432
+  user: test
+  password: test
+  dbname: test
+redis:
+  host: localhost
+  port: 6379
+s3:
+  endpoint: http://localhost:9000
+  accesskeyid: test
+  secretaccesskey: test
+  bucketname: test
+  region: us-east-1
+`,
+			wantProxyTimeout: 10 * time.Minute,
+		},
+		{
+			name: "正常系: ProxyTimeoutが5分に設定されている場合",
+			configContent: `
+database:
+  host: localhost
+  port: 5432
+  user: test
+  password: test
+  dbname: test
+redis:
+  host: localhost
+  port: 6379
+s3:
+  endpoint: http://localhost:9000
+  accesskeyid: test
+  secretaccesskey: test
+  bucketname: test
+  region: us-east-1
+server:
+  proxytimeout: 5m
+`,
+			wantProxyTimeout: 5 * time.Minute,
+		},
+		{
+			name: "正常系: ProxyTimeoutが30秒に設定されている場合",
+			configContent: `
+database:
+  host: localhost
+  port: 5432
+  user: test
+  password: test
+  dbname: test
+redis:
+  host: localhost
+  port: 6379
+s3:
+  endpoint: http://localhost:9000
+  accesskeyid: test
+  secretaccesskey: test
+  bucketname: test
+  region: us-east-1
+server:
+  proxytimeout: 30s
+`,
+			wantProxyTimeout: 30 * time.Second,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			viper.Reset()
+
+			tmpDir := t.TempDir()
+			configPath := filepath.Join(tmpDir, "config.yaml")
+			if err := os.WriteFile(configPath, []byte(tt.configContent), 0644); err != nil {
+				t.Fatalf("設定ファイルの作成に失敗: %v", err)
+			}
+
+			originalDir, err := os.Getwd()
+			if err != nil {
+				t.Fatalf("現在のディレクトリの取得に失敗: %v", err)
+			}
+			if err := os.Chdir(tmpDir); err != nil {
+				t.Fatalf("ディレクトリの変更に失敗: %v", err)
+			}
+			defer func() {
+				if err := os.Chdir(originalDir); err != nil {
+					t.Errorf("元のディレクトリへの復帰に失敗: %v", err)
+				}
+			}()
+
+			cfg, err := config.Load()
+			if err != nil {
+				t.Fatalf("Load()がエラーを返した: %v", err)
+			}
+
+			if diff := cmp.Diff(tt.wantProxyTimeout, cfg.Server.ProxyTimeout); diff != "" {
+				t.Errorf("Server.ProxyTimeout mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

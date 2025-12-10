@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -11,7 +12,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
+	"github.com/na2na-p/cargohold/internal/usecase"
 )
+
+var _ usecase.ObjectStorage = (*S3Client)(nil)
 
 type S3Config struct {
 	Endpoint        string
@@ -69,10 +73,16 @@ func NewS3ClientWithPresignFactory(client S3API, presignClient *s3.Client, bucke
 }
 
 func (c *S3Client) PutObject(ctx context.Context, key string, body io.Reader) error {
-	_, err := c.client.PutObject(ctx, &s3.PutObjectInput{
+	// AWS SDK v2のPutObjectはV4署名のためにio.ReadSeekerを必要とする
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return fmt.Errorf("failed to read body: %w", err)
+	}
+
+	_, err = c.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(c.bucket),
 		Key:    aws.String(key),
-		Body:   body,
+		Body:   bytes.NewReader(data),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to put object: %w", err)

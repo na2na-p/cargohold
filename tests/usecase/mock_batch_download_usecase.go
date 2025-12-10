@@ -42,16 +42,16 @@ func (m *MockBatchDownloadUseCase) EXPECT() *MockBatchDownloadUseCaseMockRecorde
 }
 
 // HandleBatchDownload mocks base method.
-func (m *MockBatchDownloadUseCase) HandleBatchDownload(ctx context.Context, req usecase.BatchRequest) (usecase.BatchResponse, error) {
+func (m *MockBatchDownloadUseCase) HandleBatchDownload(ctx context.Context, baseURL, owner, repo string, req usecase.BatchRequest) (usecase.BatchResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleBatchDownload", ctx, req)
+	ret := m.ctrl.Call(m, "HandleBatchDownload", ctx, baseURL, owner, repo, req)
 	ret0, _ := ret[0].(usecase.BatchResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // HandleBatchDownload indicates an expected call of HandleBatchDownload.
-func (mr *MockBatchDownloadUseCaseMockRecorder) HandleBatchDownload(ctx, req any) *gomock.Call {
+func (mr *MockBatchDownloadUseCaseMockRecorder) HandleBatchDownload(ctx, baseURL, owner, repo, req any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBatchDownload", reflect.TypeOf((*MockBatchDownloadUseCase)(nil).HandleBatchDownload), ctx, req)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBatchDownload", reflect.TypeOf((*MockBatchDownloadUseCase)(nil).HandleBatchDownload), ctx, baseURL, owner, repo, req)
 }

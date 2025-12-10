@@ -21,12 +21,12 @@ type BatchUseCase struct {
 
 func NewBatchUseCase(
 	repo domain.LFSObjectRepository,
-	s3Client S3Client,
+	actionURLGenerator ActionURLGenerator,
 	policyRepo domain.AccessPolicyRepository,
 	storageKeyGenerator StorageKeyGenerator,
 ) *BatchUseCase {
-	downloadUseCase := NewDownloadUseCase(repo, s3Client)
-	uploadUseCase := NewUploadUseCase(repo, s3Client, storageKeyGenerator)
+	downloadUseCase := NewDownloadUseCase(repo, actionURLGenerator)
+	uploadUseCase := NewUploadUseCase(repo, actionURLGenerator, storageKeyGenerator)
 	authService := domain.NewAccessAuthorizationService(policyRepo)
 
 	batchDownloadUseCase := NewBatchDownloadUseCase(downloadUseCase, authService)
@@ -48,9 +48,9 @@ func NewBatchUseCaseWithDependencies(
 	}
 }
 
-func (uc *BatchUseCase) HandleBatchRequest(ctx context.Context, req BatchRequest) (BatchResponse, error) {
+func (uc *BatchUseCase) HandleBatchRequest(ctx context.Context, baseURL, owner, repo string, req BatchRequest) (BatchResponse, error) {
 	if req.Operation() == domain.OperationDownload {
-		return uc.batchDownloadUseCase.HandleBatchDownload(ctx, req)
+		return uc.batchDownloadUseCase.HandleBatchDownload(ctx, baseURL, owner, repo, req)
 	}
-	return uc.batchUploadUseCase.HandleBatchUpload(ctx, req)
+	return uc.batchUploadUseCase.HandleBatchUpload(ctx, baseURL, owner, repo, req)
 }

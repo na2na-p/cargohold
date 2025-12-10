@@ -24,8 +24,11 @@ func TestBatchUploadUseCase_HandleBatchUpload(t *testing.T) {
 		policyRepo    func(ctrl *gomock.Controller) domain.AccessPolicyRepository
 	}
 	type args struct {
-		ctx context.Context
-		req usecase.BatchRequest
+		ctx     context.Context
+		baseURL string
+		owner   string
+		repo    string
+		req     usecase.BatchRequest
 	}
 	tests := []struct {
 		name    string
@@ -41,7 +44,7 @@ func TestBatchUploadUseCase_HandleBatchUpload(t *testing.T) {
 					mock := mock_usecase.NewMockUploadUseCase(ctrl)
 					uploadAction := usecase.NewAction("https://s3.example.com/presigned-put-url", nil, 900)
 					actions := usecase.NewActions(&uploadAction, nil)
-					mock.EXPECT().HandleUploadObject(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					mock.EXPECT().HandleUploadObject(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewResponseObject(testOID, 1024, true, &actions, nil),
 					)
 					return mock
@@ -54,7 +57,10 @@ func TestBatchUploadUseCase_HandleBatchUpload(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationUpload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, 1024)},
@@ -80,7 +86,7 @@ func TestBatchUploadUseCase_HandleBatchUpload(t *testing.T) {
 			fields: fields{
 				uploadUseCase: func(ctrl *gomock.Controller) usecase.UploadUseCase {
 					mock := mock_usecase.NewMockUploadUseCase(ctrl)
-					mock.EXPECT().HandleUploadObject(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					mock.EXPECT().HandleUploadObject(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewResponseObject(testOID, 1024, true, nil, nil),
 					)
 					return mock
@@ -95,7 +101,10 @@ func TestBatchUploadUseCase_HandleBatchUpload(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationUpload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, 1024)},
@@ -128,7 +137,10 @@ func TestBatchUploadUseCase_HandleBatchUpload(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationUpload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, 1024)},
@@ -152,7 +164,10 @@ func TestBatchUploadUseCase_HandleBatchUpload(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationUpload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, 1024)},
@@ -176,7 +191,10 @@ func TestBatchUploadUseCase_HandleBatchUpload(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationDownload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, 1024)},
@@ -200,7 +218,10 @@ func TestBatchUploadUseCase_HandleBatchUpload(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationUpload,
 					[]usecase.RequestObject{},
@@ -224,7 +245,10 @@ func TestBatchUploadUseCase_HandleBatchUpload(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationUpload,
 					[]usecase.RequestObject{usecase.NewRequestObject("invalid-oid", 1024)},
@@ -248,7 +272,10 @@ func TestBatchUploadUseCase_HandleBatchUpload(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationUpload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, -1)},
@@ -276,7 +303,7 @@ func TestBatchUploadUseCase_HandleBatchUpload(t *testing.T) {
 				policyRepo,
 			)
 
-			got, err := uc.HandleBatchUpload(tt.args.ctx, tt.args.req)
+			got, err := uc.HandleBatchUpload(tt.args.ctx, tt.args.baseURL, tt.args.owner, tt.args.repo, tt.args.req)
 
 			if tt.wantErr != nil {
 				if err == nil {

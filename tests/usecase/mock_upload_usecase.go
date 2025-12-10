@@ -43,15 +43,15 @@ func (m *MockUploadUseCase) EXPECT() *MockUploadUseCaseMockRecorder {
 }
 
 // HandleUploadObject mocks base method.
-func (m *MockUploadUseCase) HandleUploadObject(ctx context.Context, oid domain.OID, size domain.Size, hashAlgo string) usecase.ResponseObject {
+func (m *MockUploadUseCase) HandleUploadObject(ctx context.Context, baseURL, owner, repo string, oid domain.OID, size domain.Size, hashAlgo string) usecase.ResponseObject {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleUploadObject", ctx, oid, size, hashAlgo)
+	ret := m.ctrl.Call(m, "HandleUploadObject", ctx, baseURL, owner, repo, oid, size, hashAlgo)
 	ret0, _ := ret[0].(usecase.ResponseObject)
 	return ret0
 }
 
 // HandleUploadObject indicates an expected call of HandleUploadObject.
-func (mr *MockUploadUseCaseMockRecorder) HandleUploadObject(ctx, oid, size, hashAlgo any) *gomock.Call {
+func (mr *MockUploadUseCaseMockRecorder) HandleUploadObject(ctx, baseURL, owner, repo, oid, size, hashAlgo any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleUploadObject", reflect.TypeOf((*MockUploadUseCase)(nil).HandleUploadObject), ctx, oid, size, hashAlgo)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleUploadObject", reflect.TypeOf((*MockUploadUseCase)(nil).HandleUploadObject), ctx, baseURL, owner, repo, oid, size, hashAlgo)
 }

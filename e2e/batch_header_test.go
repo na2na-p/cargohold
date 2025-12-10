@@ -1,6 +1,6 @@
 //go:build e2e
 
-package e2e_test
+package e2e
 
 import (
 	"bytes"
@@ -12,11 +12,10 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/na2na-p/cargohold/e2e"
 )
 
 func TestBatchAPI_HeaderValidation(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -83,7 +82,7 @@ func TestBatchAPI_HeaderValidation(t *testing.T) {
 			repository := "na2na-p/test-repo"
 			ref := "refs/heads/main"
 
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", repository, ref),
 				"aud":        "cargohold",
@@ -112,7 +111,7 @@ func TestBatchAPI_HeaderValidation(t *testing.T) {
 				t.Fatalf("JSONのマーシャルに失敗しました: %v", err)
 			}
 
-			endpoint := e2e.GetBatchEndpoint(repository)
+			endpoint := GetBatchEndpoint(repository)
 			req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(jsonData))
 			if err != nil {
 				t.Fatalf("リクエストの作成に失敗しました: %v", err)
