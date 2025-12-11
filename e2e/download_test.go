@@ -1,7 +1,7 @@
 //go:build e2e
 
-// Package e2e_test はE2Eテストを提供します
-package e2e_test
+// Package e2e はE2Eテストを提供します
+package e2e
 
 import (
 	"fmt"
@@ -14,12 +14,11 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/na2na-p/cargohold/e2e"
 )
 
 // TestDownloadFlow はダウンロードフローのE2Eテストを実施します
 func TestDownloadFlow(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -38,7 +37,7 @@ func TestDownloadFlow(t *testing.T) {
 			name: "正常系: ダウンロード成功時にオブジェクトが正しく取得される",
 			args: args{
 				fileSize:      1024 * 1024, // 1MB
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				repository:    "na2na-p/test-repo",
 				ref:           "refs/heads/main",
 			},
@@ -48,7 +47,7 @@ func TestDownloadFlow(t *testing.T) {
 			name: "正常系: 大容量ファイル(10MB)のダウンロードが成功する",
 			args: args{
 				fileSize:      10 * 1024 * 1024, // 10MB
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				repository:    "na2na-p/test-repo",
 				ref:           "refs/heads/main",
 			},
@@ -58,7 +57,7 @@ func TestDownloadFlow(t *testing.T) {
 			name: "正常系: 小サイズファイル(1KB)のダウンロードが成功する",
 			args: args{
 				fileSize:      1024, // 1KB
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				repository:    "na2na-p/test-repo",
 				ref:           "refs/heads/main",
 			},
@@ -69,20 +68,20 @@ func TestDownloadFlow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// 準備: テスト用ファイルを作成
-			originalFile, err := e2e.CreateTestFile(tt.args.fileSize)
+			originalFile, err := CreateTestFile(tt.args.fileSize)
 			if err != nil {
 				t.Fatalf("CreateTestFile() error = %v", err)
 			}
-			defer func() { _ = e2e.CleanupTestFiles(originalFile) }()
+			defer func() { _ = CleanupTestFiles(originalFile) }()
 
 			// オリジナルファイルのSHA256ハッシュとサイズを計算
-			originalOID, originalSize, err := e2e.CalculateFileHash(originalFile)
+			originalOID, originalSize, err := CalculateFileHash(originalFile)
 			if err != nil {
-				t.Fatalf("e2e.CalculateFileHash() error = %v", err)
+				t.Fatalf("CalculateFileHash() error = %v", err)
 			}
 
 			// GitHub OIDC JWTトークンを生成
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.repository, tt.args.ref),
 				"aud":        "cargohold",
@@ -122,18 +121,18 @@ func TestDownloadFlow(t *testing.T) {
 				return
 			}
 
-			// ステップ2: S3からファイルをダウンロード
-			downloadedFile, err := downloadFileFromS3(downloadURL)
+			// ステップ2: Proxyエンドポイントからファイルをダウンロード
+			downloadedFile, err := downloadFileFromProxy(downloadURL, token)
 			if err != nil {
-				t.Errorf("downloadFileFromS3() error = %v", err)
+				t.Errorf("downloadFileFromProxy() error = %v", err)
 				return
 			}
-			defer func() { _ = e2e.CleanupTestFiles(downloadedFile) }()
+			defer func() { _ = CleanupTestFiles(downloadedFile) }()
 
 			// ステップ3: ダウンロードしたファイルのハッシュを検証
-			downloadedOID, downloadedSize, err := e2e.CalculateFileHash(downloadedFile)
+			downloadedOID, downloadedSize, err := CalculateFileHash(downloadedFile)
 			if err != nil {
-				t.Errorf("e2e.CalculateFileHash() error = %v", err)
+				t.Errorf("CalculateFileHash() error = %v", err)
 				return
 			}
 
@@ -150,19 +149,16 @@ func TestDownloadFlow(t *testing.T) {
 
 // setupUploadedFile はテスト用にファイルをアップロードします
 func setupUploadedFile(batchEndpoint, token, filepath, oid string, size int64) error {
-	// Batch APIを呼び出してアップロードURLを取得
 	uploadURL, err := requestBatchAPI(batchEndpoint, token, "upload", oid, size)
 	if err != nil {
 		return fmt.Errorf("requestBatchAPI() error = %w", err)
 	}
 
-	// S3にファイルをアップロード
-	err = uploadFileToS3(uploadURL, filepath)
+	err = uploadFileToProxy(uploadURL, filepath, token)
 	if err != nil {
-		return fmt.Errorf("uploadFileToS3() error = %w", err)
+		return fmt.Errorf("uploadFileToProxy() error = %w", err)
 	}
 
-	// Verify EndpointのURLを構築
 	verifyEndpoint, err := buildVerifyEndpoint(batchEndpoint)
 	if err != nil {
 		return fmt.Errorf("buildVerifyEndpoint() error = %w", err)
@@ -189,11 +185,16 @@ func buildVerifyEndpoint(batchEndpoint string) (string, error) {
 	return parsedURL.String(), nil
 }
 
-// downloadFileFromS3 は署名付きURLを使用してS3からファイルをダウンロードします
-func downloadFileFromS3(downloadURL string) (string, error) {
+// downloadFileFromProxy はProxyエンドポイントを使用してファイルをダウンロードします
+func downloadFileFromProxy(downloadURL, token string) (string, error) {
 	req, err := http.NewRequest(http.MethodGet, downloadURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("リクエストの作成に失敗しました: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/vnd.git-lfs+json")
+	if token != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	}
 
 	client := &http.Client{Timeout: 5 * time.Minute}
@@ -208,8 +209,7 @@ func downloadFileFromS3(downloadURL string) (string, error) {
 		return "", fmt.Errorf("ダウンロードに失敗しました: status=%d, body=%s", resp.StatusCode, string(body))
 	}
 
-	// 一時ファイルにダウンロード
-	tempDir, err := e2e.GetTestTempDir()
+	tempDir, err := GetTestTempDir()
 	if err != nil {
 		return "", fmt.Errorf("GetTestTempDir() error = %w", err)
 	}
@@ -231,9 +231,115 @@ func downloadFileFromS3(downloadURL string) (string, error) {
 	return filepath, nil
 }
 
+// TestDownloadProxy_Unauthorized は認証なしでProxyエンドポイントにアクセスした場合のテストを実施します
+func TestDownloadProxy_Unauthorized(t *testing.T) {
+	if err := SetupE2EEnvironment(); err != nil {
+		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
+	}
+
+	tests := []struct {
+		name       string
+		oid        string
+		wantStatus int
+	}{
+		{
+			name:       "異常系: 認証なしでダウンロードした場合、401エラーが返る",
+			oid:        "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+			wantStatus: http.StatusUnauthorized,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			baseURL := GetBaseEndpoint()
+			proxyURL := fmt.Sprintf("%s/na2na-p/test-repo/info/lfs/objects/%s", baseURL, tt.oid)
+
+			req, err := http.NewRequest(http.MethodGet, proxyURL, nil)
+			if err != nil {
+				t.Fatalf("http.NewRequest() error = %v", err)
+			}
+			req.Header.Set("Accept", "application/octet-stream")
+
+			client := &http.Client{Timeout: 30 * time.Second}
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatalf("client.Do() error = %v", err)
+			}
+			defer func() { _ = resp.Body.Close() }()
+
+			if diff := cmp.Diff(tt.wantStatus, resp.StatusCode); diff != "" {
+				body, _ := io.ReadAll(resp.Body)
+				t.Errorf("ステータスコードが期待値と異なります (-want +got):\n%s\nbody: %s", diff, string(body))
+			}
+		})
+	}
+}
+
+// TestDownloadProxy_NonExistentOID は存在しないOIDに対してダウンロードした場合のテストを実施します
+// アクセスポリシーが存在しないため、403 Forbiddenが返されます
+func TestDownloadProxy_NonExistentOID(t *testing.T) {
+	if err := SetupE2EEnvironment(); err != nil {
+		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
+	}
+
+	tests := []struct {
+		name       string
+		oid        string
+		repository string
+		ref        string
+		wantStatus int
+	}{
+		{
+			name:       "異常系: 存在しないOIDに対してダウンロードした場合、403エラーが返る（アクセスポリシーが存在しないため）",
+			oid:        "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+			repository: "na2na-p/test-repo",
+			ref:        "refs/heads/main",
+			wantStatus: http.StatusForbidden,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			token, err := GenerateJWT(map[string]interface{}{
+				"iss":        "https://token.actions.githubusercontent.com",
+				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.repository, tt.ref),
+				"aud":        "cargohold",
+				"repository": tt.repository,
+				"ref":        tt.ref,
+				"actor":      "github-actions[bot]",
+			})
+			if err != nil {
+				t.Fatalf("GenerateJWT() error = %v", err)
+			}
+
+			baseURL := GetBaseEndpoint()
+			proxyURL := fmt.Sprintf("%s/%s/info/lfs/objects/%s", baseURL, tt.repository, tt.oid)
+
+			req, err := http.NewRequest(http.MethodGet, proxyURL, nil)
+			if err != nil {
+				t.Fatalf("http.NewRequest() error = %v", err)
+			}
+			req.Header.Set("Accept", "application/octet-stream")
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+
+			client := &http.Client{Timeout: 30 * time.Second}
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatalf("client.Do() error = %v", err)
+			}
+			defer func() { _ = resp.Body.Close() }()
+
+			if diff := cmp.Diff(tt.wantStatus, resp.StatusCode); diff != "" {
+				body, _ := io.ReadAll(resp.Body)
+				t.Errorf("ステータスコードが期待値と異なります (-want +got):\n%s\nbody: %s", diff, string(body))
+			}
+		})
+	}
+}
+
 // TestDownloadFlow_FileNotFound は存在しないファイルのダウンロード時のエラーをテストします
 func TestDownloadFlow_FileNotFound(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -252,7 +358,7 @@ func TestDownloadFlow_FileNotFound(t *testing.T) {
 		{
 			name: "異常系: 存在しないOIDの場合、エラーが返る",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				oid:           "0000000000000000000000000000000000000000000000000000000000000000",
 				size:          1024,
 				repository:    "na2na-p/test-repo",
@@ -265,7 +371,7 @@ func TestDownloadFlow_FileNotFound(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// GitHub OIDC JWTトークンを生成
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.repository, tt.args.ref),
 				"aud":        "cargohold",
@@ -294,9 +400,113 @@ func TestDownloadFlow_FileNotFound(t *testing.T) {
 	}
 }
 
+// TestDownloadProxy_CrossRepositoryAccessDenied は別のリポジトリのオブジェクトへのアクセスが拒否されることを検証します
+func TestDownloadProxy_CrossRepositoryAccessDenied(t *testing.T) {
+	if err := SetupE2EEnvironment(); err != nil {
+		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
+	}
+
+	type args struct {
+		fileSize         int64
+		uploadRepository string
+		uploadRef        string
+		accessRepository string
+		accessRef        string
+	}
+	tests := []struct {
+		name       string
+		args       args
+		wantStatus int
+	}{
+		{
+			name: "異常系: 別リポジトリのトークンでダウンロードした場合、403エラーが返る",
+			args: args{
+				fileSize:         1024,
+				uploadRepository: "na2na-p/test-repo",
+				uploadRef:        "refs/heads/main",
+				accessRepository: "na2na-p/na2na-platform",
+				accessRef:        "refs/heads/main",
+			},
+			wantStatus: http.StatusForbidden,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testFile, err := CreateTestFile(tt.args.fileSize)
+			if err != nil {
+				t.Fatalf("CreateTestFile() error = %v", err)
+			}
+			defer func() { _ = CleanupTestFiles(testFile) }()
+
+			oid, size, err := CalculateFileHash(testFile)
+			if err != nil {
+				t.Fatalf("CalculateFileHash() error = %v", err)
+			}
+
+			uploadToken, err := GenerateJWT(map[string]interface{}{
+				"iss":        "https://token.actions.githubusercontent.com",
+				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.uploadRepository, tt.args.uploadRef),
+				"aud":        "cargohold",
+				"repository": tt.args.uploadRepository,
+				"ref":        tt.args.uploadRef,
+				"actor":      "github-actions[bot]",
+			})
+			if err != nil {
+				t.Fatalf("GenerateJWT() error = %v", err)
+			}
+
+			err = setupUploadedFile(
+				GetBatchEndpoint(tt.args.uploadRepository),
+				uploadToken,
+				testFile,
+				oid,
+				size,
+			)
+			if err != nil {
+				t.Fatalf("setupUploadedFile() error = %v", err)
+			}
+
+			accessToken, err := GenerateJWT(map[string]interface{}{
+				"iss":        "https://token.actions.githubusercontent.com",
+				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.accessRepository, tt.args.accessRef),
+				"aud":        "cargohold",
+				"repository": tt.args.accessRepository,
+				"ref":        tt.args.accessRef,
+				"actor":      "github-actions[bot]",
+			})
+			if err != nil {
+				t.Fatalf("GenerateJWT() error = %v", err)
+			}
+
+			baseURL := GetBaseEndpoint()
+			proxyURL := fmt.Sprintf("%s/%s/info/lfs/objects/%s", baseURL, tt.args.accessRepository, oid)
+
+			req, err := http.NewRequest(http.MethodGet, proxyURL, nil)
+			if err != nil {
+				t.Fatalf("http.NewRequest() error = %v", err)
+			}
+			req.Header.Set("Accept", "application/octet-stream")
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+
+			client := &http.Client{Timeout: 30 * time.Second}
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatalf("client.Do() error = %v", err)
+			}
+			defer func() { _ = resp.Body.Close() }()
+
+			if diff := cmp.Diff(tt.wantStatus, resp.StatusCode); diff != "" {
+				body, _ := io.ReadAll(resp.Body)
+				t.Errorf("ステータスコードが期待値と異なります (-want +got):\n%s\nbody: %s", diff, string(body))
+			}
+		})
+	}
+}
+
 // TestDownloadFlow_ContentVerification はダウンロードしたファイルの内容を検証します
 func TestDownloadFlow_ContentVerification(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -315,7 +525,7 @@ func TestDownloadFlow_ContentVerification(t *testing.T) {
 			name: "正常系: ダウンロードしたファイルの内容が元のファイルと完全に一致する",
 			args: args{
 				fileSize:      1024 * 1024, // 1MB
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				repository:    "na2na-p/test-repo",
 				ref:           "refs/heads/main",
 			},
@@ -326,11 +536,11 @@ func TestDownloadFlow_ContentVerification(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// 準備: テスト用ファイルを作成
-			originalFile, err := e2e.CreateTestFile(tt.args.fileSize)
+			originalFile, err := CreateTestFile(tt.args.fileSize)
 			if err != nil {
 				t.Fatalf("CreateTestFile() error = %v", err)
 			}
-			defer func() { _ = e2e.CleanupTestFiles(originalFile) }()
+			defer func() { _ = CleanupTestFiles(originalFile) }()
 
 			// オリジナルファイルの内容を読み込み
 			originalContent, err := os.ReadFile(originalFile)
@@ -339,13 +549,13 @@ func TestDownloadFlow_ContentVerification(t *testing.T) {
 			}
 
 			// ハッシュ計算
-			originalOID, originalSize, err := e2e.CalculateFileHash(originalFile)
+			originalOID, originalSize, err := CalculateFileHash(originalFile)
 			if err != nil {
-				t.Fatalf("e2e.CalculateFileHash() error = %v", err)
+				t.Fatalf("CalculateFileHash() error = %v", err)
 			}
 
 			// GitHub OIDC JWTトークンを生成
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.repository, tt.args.ref),
 				"aud":        "cargohold",
@@ -385,12 +595,12 @@ func TestDownloadFlow_ContentVerification(t *testing.T) {
 				return
 			}
 
-			downloadedFile, err := downloadFileFromS3(downloadURL)
+			downloadedFile, err := downloadFileFromProxy(downloadURL, token)
 			if err != nil {
-				t.Errorf("downloadFileFromS3() error = %v", err)
+				t.Errorf("downloadFileFromProxy() error = %v", err)
 				return
 			}
-			defer func() { _ = e2e.CleanupTestFiles(downloadedFile) }()
+			defer func() { _ = CleanupTestFiles(downloadedFile) }()
 
 			// ダウンロードしたファイルの内容を読み込み
 			downloadedContent, err := os.ReadFile(downloadedFile)

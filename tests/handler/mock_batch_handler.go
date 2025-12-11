@@ -42,16 +42,16 @@ func (m *MockBatchUseCaseInterface) EXPECT() *MockBatchUseCaseInterfaceMockRecor
 }
 
 // HandleBatchRequest mocks base method.
-func (m *MockBatchUseCaseInterface) HandleBatchRequest(ctx context.Context, req usecase.BatchRequest) (usecase.BatchResponse, error) {
+func (m *MockBatchUseCaseInterface) HandleBatchRequest(ctx context.Context, baseURL, owner, repo string, req usecase.BatchRequest) (usecase.BatchResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleBatchRequest", ctx, req)
+	ret := m.ctrl.Call(m, "HandleBatchRequest", ctx, baseURL, owner, repo, req)
 	ret0, _ := ret[0].(usecase.BatchResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // HandleBatchRequest indicates an expected call of HandleBatchRequest.
-func (mr *MockBatchUseCaseInterfaceMockRecorder) HandleBatchRequest(ctx, req any) *gomock.Call {
+func (mr *MockBatchUseCaseInterfaceMockRecorder) HandleBatchRequest(ctx, baseURL, owner, repo, req any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBatchRequest", reflect.TypeOf((*MockBatchUseCaseInterface)(nil).HandleBatchRequest), ctx, req)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBatchRequest", reflect.TypeOf((*MockBatchUseCaseInterface)(nil).HandleBatchRequest), ctx, baseURL, owner, repo, req)
 }

@@ -1,6 +1,6 @@
 //go:build e2e
 
-package e2e_test
+package e2e
 
 import (
 	"bytes"
@@ -13,11 +13,10 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/na2na-p/cargohold/e2e"
 )
 
 func TestVerifyAPI_BadRequest(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -125,7 +124,7 @@ func TestVerifyAPI_BadRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.repository, tt.args.ref),
 				"aud":        "cargohold",
@@ -137,7 +136,7 @@ func TestVerifyAPI_BadRequest(t *testing.T) {
 				t.Fatalf("GenerateJWT() error = %v", err)
 			}
 
-			endpoint := e2e.GetVerifyEndpoint(tt.args.repository)
+			endpoint := GetVerifyEndpoint(tt.args.repository)
 			status, message, err := sendVerifyRequest(endpoint, token, tt.args.reqBody)
 			if err != nil {
 				t.Fatalf("sendVerifyRequest() error = %v", err)
@@ -154,7 +153,7 @@ func TestVerifyAPI_BadRequest(t *testing.T) {
 }
 
 func TestVerifyAPI_NotFound(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -186,7 +185,7 @@ func TestVerifyAPI_NotFound(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.repository, tt.args.ref),
 				"aud":        "cargohold",
@@ -198,7 +197,7 @@ func TestVerifyAPI_NotFound(t *testing.T) {
 				t.Fatalf("GenerateJWT() error = %v", err)
 			}
 
-			endpoint := e2e.GetVerifyEndpoint(tt.args.repository)
+			endpoint := GetVerifyEndpoint(tt.args.repository)
 			status, message, err := sendVerifyRequest(endpoint, token, tt.args.reqBody)
 			if err != nil {
 				t.Fatalf("sendVerifyRequest() error = %v", err)
@@ -215,7 +214,7 @@ func TestVerifyAPI_NotFound(t *testing.T) {
 }
 
 func TestVerifyAPI_UnprocessableEntity(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -246,18 +245,18 @@ func TestVerifyAPI_UnprocessableEntity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			testFile, err := e2e.CreateTestFile(tt.args.fileSize)
+			testFile, err := CreateTestFile(tt.args.fileSize)
 			if err != nil {
 				t.Fatalf("CreateTestFile() error = %v", err)
 			}
-			defer func() { _ = e2e.CleanupTestFiles(testFile) }()
+			defer func() { _ = CleanupTestFiles(testFile) }()
 
-			oid, size, err := e2e.CalculateFileHash(testFile)
+			oid, size, err := CalculateFileHash(testFile)
 			if err != nil {
 				t.Fatalf("CalculateFileHash() error = %v", err)
 			}
 
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.repository, tt.args.ref),
 				"aud":        "cargohold",
@@ -269,18 +268,18 @@ func TestVerifyAPI_UnprocessableEntity(t *testing.T) {
 				t.Fatalf("GenerateJWT() error = %v", err)
 			}
 
-			batchEndpoint := e2e.GetBatchEndpoint(tt.args.repository)
+			batchEndpoint := GetBatchEndpoint(tt.args.repository)
 			uploadURL, err := requestBatchAPIForVerifyTest(batchEndpoint, token, "upload", oid, size)
 			if err != nil {
 				t.Fatalf("requestBatchAPIForVerifyTest() error = %v", err)
 			}
 
-			err = uploadFileToS3ForVerifyTest(uploadURL, testFile)
+			err = uploadFileToProxyForVerifyTest(uploadURL, testFile, token)
 			if err != nil {
-				t.Fatalf("uploadFileToS3ForVerifyTest() error = %v", err)
+				t.Fatalf("uploadFileToProxyForVerifyTest() error = %v", err)
 			}
 
-			verifyEndpoint := e2e.GetVerifyEndpoint(tt.args.repository)
+			verifyEndpoint := GetVerifyEndpoint(tt.args.repository)
 			reqBody := map[string]interface{}{
 				"oid":  oid,
 				"size": tt.args.verifyWithSize,
@@ -417,7 +416,7 @@ func requestBatchAPIForVerifyTest(endpoint, token, operation, oid string, size i
 	return obj.Actions.Upload.Href, nil
 }
 
-func uploadFileToS3ForVerifyTest(uploadURL, filepath string) error {
+func uploadFileToProxyForVerifyTest(uploadURL, filepath, token string) error {
 	file, err := os.Open(filepath)
 	if err != nil {
 		return fmt.Errorf("ファイルを開けませんでした: %w", err)
@@ -434,7 +433,11 @@ func uploadFileToS3ForVerifyTest(uploadURL, filepath string) error {
 		return fmt.Errorf("リクエストの作成に失敗しました: %w", err)
 	}
 
+	req.Header.Set("Accept", "application/vnd.git-lfs+json")
 	req.Header.Set("Content-Type", "application/octet-stream")
+	if token != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	}
 	req.ContentLength = fileInfo.Size()
 
 	client := &http.Client{Timeout: 5 * time.Minute}

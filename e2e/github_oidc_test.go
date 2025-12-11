@@ -1,7 +1,7 @@
 //go:build e2e
 
-// Package e2e_test はE2Eテストを提供します
-package e2e_test
+// Package e2e はE2Eテストを提供します
+package e2e
 
 import (
 	"bytes"
@@ -13,12 +13,11 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/na2na-p/cargohold/e2e"
 )
 
 // TestGitHubOIDCAuthentication はGitHub Actions OIDC認証のE2Eテストを実施します
 func TestGitHubOIDCAuthentication(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -38,7 +37,7 @@ func TestGitHubOIDCAuthentication(t *testing.T) {
 		{
 			name: "正常系: GitHub OIDC認証が成功する",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/na2na-platform"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/na2na-platform"),
 				repository:    "na2na-p/na2na-platform",
 				ref:           "refs/heads/main",
 				sha:           "abc123",
@@ -50,7 +49,7 @@ func TestGitHubOIDCAuthentication(t *testing.T) {
 		{
 			name: "正常系: 別のリポジトリでの認証が成功する",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				repository:    "na2na-p/test-repo",
 				ref:           "refs/heads/develop",
 				sha:           "def456",
@@ -64,7 +63,7 @@ func TestGitHubOIDCAuthentication(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// ステップ1: GitHub OIDC JWTトークンを生成
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.repository, tt.args.ref),
 				"aud":        "cargohold",
@@ -96,7 +95,7 @@ func TestGitHubOIDCAuthentication(t *testing.T) {
 
 // TestGitHubOIDCAuthentication_InvalidToken は無効なトークンでの認証失敗をテストします
 func TestGitHubOIDCAuthentication_InvalidToken(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -112,7 +111,7 @@ func TestGitHubOIDCAuthentication_InvalidToken(t *testing.T) {
 		{
 			name: "異常系: 無効なトークンの場合、認証エラーが返る",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				token:         "invalid.token.here",
 			},
 			wantErr: true,
@@ -120,7 +119,7 @@ func TestGitHubOIDCAuthentication_InvalidToken(t *testing.T) {
 		{
 			name: "異常系: 空のトークンの場合、認証エラーが返る",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				token:         "",
 			},
 			wantErr: true,
@@ -148,7 +147,7 @@ func TestGitHubOIDCAuthentication_InvalidToken(t *testing.T) {
 
 // TestGitHubOIDCAuthentication_ExpiredToken は期限切れトークンでの認証失敗をテストします
 func TestGitHubOIDCAuthentication_ExpiredToken(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -165,7 +164,7 @@ func TestGitHubOIDCAuthentication_ExpiredToken(t *testing.T) {
 		{
 			name: "異常系: 期限切れトークンの場合、認証エラーが返る",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/na2na-platform"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/na2na-platform"),
 				repository:    "na2na-p/na2na-platform",
 				ref:           "refs/heads/main",
 			},
@@ -179,7 +178,7 @@ func TestGitHubOIDCAuthentication_ExpiredToken(t *testing.T) {
 			now := time.Now()
 			expiredTime := now.Add(-1 * time.Hour) // 1時間前に期限切れ
 
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.repository, tt.args.ref),
 				"aud":        "cargohold",
@@ -214,7 +213,7 @@ func TestGitHubOIDCAuthentication_ExpiredToken(t *testing.T) {
 // TestGitHubOIDCAuthentication_DownloadOperation はダウンロード操作でのOIDC認証をテストします
 // ダウンロード操作をテストするには、まずオブジェクトをアップロードする必要があります
 func TestGitHubOIDCAuthentication_DownloadOperation(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -234,8 +233,8 @@ func TestGitHubOIDCAuthentication_DownloadOperation(t *testing.T) {
 			name: "正常系: ダウンロード操作でのGitHub OIDC認証が成功する",
 			args: args{
 				fileSize:       1024,
-				batchEndpoint:  e2e.GetBatchEndpoint("na2na-p/na2na-platform"),
-				verifyEndpoint: e2e.GetVerifyEndpoint("na2na-p/na2na-platform"),
+				batchEndpoint:  GetBatchEndpoint("na2na-p/na2na-platform"),
+				verifyEndpoint: GetVerifyEndpoint("na2na-p/na2na-platform"),
 				repository:     "na2na-p/na2na-platform",
 				ref:            "refs/heads/main",
 			},
@@ -246,20 +245,20 @@ func TestGitHubOIDCAuthentication_DownloadOperation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// ステップ1: テスト用ファイルを作成
-			testFile, err := e2e.CreateTestFile(tt.args.fileSize)
+			testFile, err := CreateTestFile(tt.args.fileSize)
 			if err != nil {
 				t.Fatalf("CreateTestFile() error = %v", err)
 			}
-			defer func() { _ = e2e.CleanupTestFiles(testFile) }()
+			defer func() { _ = CleanupTestFiles(testFile) }()
 
 			// ファイルのSHA256ハッシュとサイズを計算
-			oid, size, err := e2e.CalculateFileHash(testFile)
+			oid, size, err := CalculateFileHash(testFile)
 			if err != nil {
-				t.Fatalf("e2e.CalculateFileHash() error = %v", err)
+				t.Fatalf("CalculateFileHash() error = %v", err)
 			}
 
 			// ステップ2: GitHub OIDC JWTトークンを生成
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.repository, tt.args.ref),
 				"aud":        "cargohold",
@@ -283,9 +282,9 @@ func TestGitHubOIDCAuthentication_DownloadOperation(t *testing.T) {
 				t.Fatalf("requestBatchAPIWithOIDCAndGetURL() for upload error = %v", err)
 			}
 
-			err = uploadFileToS3(uploadURL, testFile)
+			err = uploadFileToProxy(uploadURL, testFile, token)
 			if err != nil {
-				t.Fatalf("uploadFileToS3() error = %v", err)
+				t.Fatalf("uploadFileToProxy() error = %v", err)
 			}
 
 			err = verifyUploadWithOIDC(tt.args.verifyEndpoint, token, oid, size)
@@ -365,7 +364,7 @@ func requestBatchAPIWithOIDC(endpoint, token, operation, oid string, size int64)
 
 // TestGitHubOIDCAuthentication_WithUploadFlow はOIDC認証を使用した完全なアップロードフローをテストします
 func TestGitHubOIDCAuthentication_WithUploadFlow(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -385,8 +384,8 @@ func TestGitHubOIDCAuthentication_WithUploadFlow(t *testing.T) {
 			name: "正常系: OIDC認証を使用した完全なアップロードフローが成功する",
 			args: args{
 				fileSize:       1024 * 1024, // 1MB
-				batchEndpoint:  e2e.GetBatchEndpoint("na2na-p/na2na-platform"),
-				verifyEndpoint: e2e.GetVerifyEndpoint("na2na-p/na2na-platform"),
+				batchEndpoint:  GetBatchEndpoint("na2na-p/na2na-platform"),
+				verifyEndpoint: GetVerifyEndpoint("na2na-p/na2na-platform"),
 				repository:     "na2na-p/na2na-platform",
 				ref:            "refs/heads/main",
 			},
@@ -397,20 +396,20 @@ func TestGitHubOIDCAuthentication_WithUploadFlow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// 準備: テスト用ファイルを作成
-			testFile, err := e2e.CreateTestFile(tt.args.fileSize)
+			testFile, err := CreateTestFile(tt.args.fileSize)
 			if err != nil {
 				t.Fatalf("CreateTestFile() error = %v", err)
 			}
-			defer func() { _ = e2e.CleanupTestFiles(testFile) }()
+			defer func() { _ = CleanupTestFiles(testFile) }()
 
 			// ファイルのSHA256ハッシュとサイズを計算
-			oid, size, err := e2e.CalculateFileHash(testFile)
+			oid, size, err := CalculateFileHash(testFile)
 			if err != nil {
-				t.Fatalf("e2e.CalculateFileHash() error = %v", err)
+				t.Fatalf("CalculateFileHash() error = %v", err)
 			}
 
 			// ステップ1: GitHub OIDC JWTトークンを生成
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.repository, tt.args.ref),
 				"aud":        "cargohold",
@@ -438,10 +437,10 @@ func TestGitHubOIDCAuthentication_WithUploadFlow(t *testing.T) {
 				return
 			}
 
-			// ステップ3: S3にファイルをアップロード
-			err = uploadFileToS3(uploadURL, testFile)
+			// ステップ3: Proxyエンドポイントにファイルをアップロード
+			err = uploadFileToProxy(uploadURL, testFile, token)
 			if err != nil {
-				t.Errorf("uploadFileToS3() error = %v", err)
+				t.Errorf("uploadFileToProxy() error = %v", err)
 				return
 			}
 
@@ -563,7 +562,7 @@ func verifyUploadWithOIDC(endpoint, token, oid string, size int64) error {
 
 // TestGitHubOIDCAuthentication_LFSAuthenticateHeader は401エラー時のLFS-Authenticateヘッダーを検証します
 func TestGitHubOIDCAuthentication_LFSAuthenticateHeader(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -580,7 +579,7 @@ func TestGitHubOIDCAuthentication_LFSAuthenticateHeader(t *testing.T) {
 		{
 			name: "異常系: 無効なトークンの場合、LFS-Authenticateヘッダーが返される",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				token:         "invalid.token.here",
 			},
 			wantStatusCode:    http.StatusUnauthorized,
@@ -589,7 +588,7 @@ func TestGitHubOIDCAuthentication_LFSAuthenticateHeader(t *testing.T) {
 		{
 			name: "異常系: 空のトークンの場合、LFS-Authenticateヘッダーが返される",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				token:         "",
 			},
 			wantStatusCode:    http.StatusUnauthorized,
@@ -625,7 +624,7 @@ func TestGitHubOIDCAuthentication_LFSAuthenticateHeader(t *testing.T) {
 
 // TestGitHubOIDCAuthentication_InvalidAudience は不正なaudienceでの認証失敗をテストします
 func TestGitHubOIDCAuthentication_InvalidAudience(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -643,7 +642,7 @@ func TestGitHubOIDCAuthentication_InvalidAudience(t *testing.T) {
 		{
 			name: "異常系: audクレームが不正な場合、認証エラーが返る",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				repository:    "na2na-p/test-repo",
 				ref:           "refs/heads/main",
 				audience:      "invalid-audience",
@@ -653,7 +652,7 @@ func TestGitHubOIDCAuthentication_InvalidAudience(t *testing.T) {
 		{
 			name: "異常系: audクレームが空の場合、認証エラーが返る",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				repository:    "na2na-p/test-repo",
 				ref:           "refs/heads/main",
 				audience:      "",
@@ -664,7 +663,7 @@ func TestGitHubOIDCAuthentication_InvalidAudience(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.repository, tt.args.ref),
 				"aud":        tt.args.audience,
@@ -698,7 +697,7 @@ func TestGitHubOIDCAuthentication_InvalidAudience(t *testing.T) {
 
 // TestGitHubOIDCAuthentication_InvalidIssuer は不正なissuerでの認証失敗をテストします
 func TestGitHubOIDCAuthentication_InvalidIssuer(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -716,7 +715,7 @@ func TestGitHubOIDCAuthentication_InvalidIssuer(t *testing.T) {
 		{
 			name: "異常系: issクレームがGitHub OIDC issuer以外の場合、認証エラーが返る",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				repository:    "na2na-p/test-repo",
 				ref:           "refs/heads/main",
 				issuer:        "https://invalid-issuer.example.com",
@@ -726,7 +725,7 @@ func TestGitHubOIDCAuthentication_InvalidIssuer(t *testing.T) {
 		{
 			name: "異常系: issクレームが空の場合、認証エラーが返る",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("na2na-p/test-repo"),
+				batchEndpoint: GetBatchEndpoint("na2na-p/test-repo"),
 				repository:    "na2na-p/test-repo",
 				ref:           "refs/heads/main",
 				issuer:        "",
@@ -737,7 +736,7 @@ func TestGitHubOIDCAuthentication_InvalidIssuer(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        tt.args.issuer,
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.repository, tt.args.ref),
 				"aud":        "cargohold",
@@ -771,7 +770,7 @@ func TestGitHubOIDCAuthentication_InvalidIssuer(t *testing.T) {
 
 // TestGitHubOIDCAuthentication_UnauthorizedRepository は許可されていないリポジトリからのアクセスをテストします
 func TestGitHubOIDCAuthentication_UnauthorizedRepository(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -788,7 +787,7 @@ func TestGitHubOIDCAuthentication_UnauthorizedRepository(t *testing.T) {
 		{
 			name: "異常系: 許可リストに含まれないリポジトリからのアクセスは拒否される",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("unauthorized/repo"),
+				batchEndpoint: GetBatchEndpoint("unauthorized/repo"),
 				repository:    "unauthorized/repo",
 				ref:           "refs/heads/main",
 			},
@@ -797,7 +796,7 @@ func TestGitHubOIDCAuthentication_UnauthorizedRepository(t *testing.T) {
 		{
 			name: "異常系: 存在しないオーナーのリポジトリからのアクセスは拒否される",
 			args: args{
-				batchEndpoint: e2e.GetBatchEndpoint("unknown-owner/unknown-repo"),
+				batchEndpoint: GetBatchEndpoint("unknown-owner/unknown-repo"),
 				repository:    "unknown-owner/unknown-repo",
 				ref:           "refs/heads/main",
 			},
@@ -807,7 +806,7 @@ func TestGitHubOIDCAuthentication_UnauthorizedRepository(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", tt.args.repository, tt.args.ref),
 				"aud":        "cargohold",

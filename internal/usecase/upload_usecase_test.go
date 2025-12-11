@@ -16,11 +16,14 @@ import (
 func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 	type fields struct {
 		repo                func(ctrl *gomock.Controller) domain.LFSObjectRepository
-		s3Client            func(ctrl *gomock.Controller) usecase.S3Client
+		actionURLGenerator  func(ctrl *gomock.Controller) usecase.ActionURLGenerator
 		storageKeyGenerator func(ctrl *gomock.Controller) usecase.StorageKeyGenerator
 	}
 	type args struct {
 		ctx      context.Context
+		baseURL  string
+		owner    string
+		repo     string
 		oid      domain.OID
 		size     domain.Size
 		hashAlgo string
@@ -45,8 +48,8 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(obj, nil)
 					return mock
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					return mock_usecase.NewMockStorageKeyGenerator(ctrl)
@@ -57,6 +60,9 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 				size, _ := domain.NewSize(1024)
 				return args{
 					ctx:      context.Background(),
+					baseURL:  "https://example.com",
+					owner:    "test-owner",
+					repo:     "test-repo",
 					oid:      oid,
 					size:     size,
 					hashAlgo: "sha256",
@@ -65,7 +71,7 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 			want: usecase.NewResponseObject("1234567890123456789012345678901234567890123456789012345678901234", 1024, true, nil, nil),
 		},
 		{
-			name: "正常系: オブジェクトが未登録の場合、新規登録して署名付きアップロードURLが返る",
+			name: "正常系: オブジェクトが未登録の場合、新規登録してアップロードURLが返る",
 			fields: fields{
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					mock := mock_domain.NewMockLFSObjectRepository(ctrl)
@@ -73,9 +79,9 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 					mock.EXPECT().Save(gomock.Any(), gomock.Any()).Return(nil)
 					return mock
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					mock := mock_usecase.NewMockS3Client(ctrl)
-					mock.EXPECT().GeneratePutURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("https://s3.example.com/presigned-put-url", nil)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					mock := mock_usecase.NewMockActionURLGenerator(ctrl)
+					mock.EXPECT().GenerateUploadURL("https://example.com", "test-owner", "test-repo", "1234567890123456789012345678901234567890123456789012345678901234").Return("https://example.com/test-owner/test-repo/objects/1234567890123456789012345678901234567890123456789012345678901234/upload")
 					return mock
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
@@ -89,19 +95,22 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 				size, _ := domain.NewSize(1024)
 				return args{
 					ctx:      context.Background(),
+					baseURL:  "https://example.com",
+					owner:    "test-owner",
+					repo:     "test-repo",
 					oid:      oid,
 					size:     size,
 					hashAlgo: "sha256",
 				}
 			}(),
 			want: func() usecase.ResponseObject {
-				uploadAction := usecase.NewAction("https://s3.example.com/presigned-put-url", nil, 900)
+				uploadAction := usecase.NewAction("https://example.com/test-owner/test-repo/objects/1234567890123456789012345678901234567890123456789012345678901234/upload", nil, 900)
 				actions := usecase.NewActions(&uploadAction, nil)
 				return usecase.NewResponseObject("1234567890123456789012345678901234567890123456789012345678901234", 1024, true, &actions, nil)
 			}(),
 		},
 		{
-			name: "正常系: オブジェクトが登録済みだがアップロード未完了の場合、既存のStorageKeyを使用して署名付きアップロードURLが返る",
+			name: "正常系: オブジェクトが登録済みだがアップロード未完了の場合、アップロードURLが返る",
 			fields: fields{
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					mock := mock_domain.NewMockLFSObjectRepository(ctrl)
@@ -113,9 +122,9 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(obj, nil)
 					return mock
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					mock := mock_usecase.NewMockS3Client(ctrl)
-					mock.EXPECT().GeneratePutURL(gomock.Any(), "existing-storage-key-from-db", gomock.Any()).Return("https://s3.example.com/presigned-put-url", nil)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					mock := mock_usecase.NewMockActionURLGenerator(ctrl)
+					mock.EXPECT().GenerateUploadURL("https://example.com", "test-owner", "test-repo", "1234567890123456789012345678901234567890123456789012345678901234").Return("https://example.com/test-owner/test-repo/objects/1234567890123456789012345678901234567890123456789012345678901234/upload")
 					return mock
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
@@ -127,13 +136,16 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 				size, _ := domain.NewSize(1024)
 				return args{
 					ctx:      context.Background(),
+					baseURL:  "https://example.com",
+					owner:    "test-owner",
+					repo:     "test-repo",
 					oid:      oid,
 					size:     size,
 					hashAlgo: "sha256",
 				}
 			}(),
 			want: func() usecase.ResponseObject {
-				uploadAction := usecase.NewAction("https://s3.example.com/presigned-put-url", nil, 900)
+				uploadAction := usecase.NewAction("https://example.com/test-owner/test-repo/objects/1234567890123456789012345678901234567890123456789012345678901234/upload", nil, 900)
 				actions := usecase.NewActions(&uploadAction, nil)
 				return usecase.NewResponseObject("1234567890123456789012345678901234567890123456789012345678901234", 1024, true, &actions, nil)
 			}(),
@@ -147,8 +159,8 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 					mock.EXPECT().Save(gomock.Any(), gomock.Any()).Return(errors.New("save error"))
 					return mock
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					mock := mock_usecase.NewMockStorageKeyGenerator(ctrl)
@@ -161,6 +173,9 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 				size, _ := domain.NewSize(1024)
 				return args{
 					ctx:      context.Background(),
+					baseURL:  "https://example.com",
+					owner:    "test-owner",
+					repo:     "test-repo",
 					oid:      oid,
 					size:     size,
 					hashAlgo: "sha256",
@@ -172,41 +187,6 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 			}(),
 		},
 		{
-			name: "異常系: 署名付きURL生成に失敗した場合、500エラーが返る",
-			fields: fields{
-				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
-					mock := mock_domain.NewMockLFSObjectRepository(ctrl)
-					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(nil, domain.ErrNotFound)
-					mock.EXPECT().Save(gomock.Any(), gomock.Any()).Return(nil)
-					return mock
-				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					mock := mock_usecase.NewMockS3Client(ctrl)
-					mock.EXPECT().GeneratePutURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("S3 error"))
-					return mock
-				},
-				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
-					mock := mock_usecase.NewMockStorageKeyGenerator(ctrl)
-					mock.EXPECT().GenerateStorageKey(gomock.Any(), gomock.Any()).Return("objects/sha256/12/34/1234567890123456789012345678901234567890123456789012345678901234", nil)
-					return mock
-				},
-			},
-			args: func() args {
-				oid, _ := domain.NewOID("1234567890123456789012345678901234567890123456789012345678901234")
-				size, _ := domain.NewSize(1024)
-				return args{
-					ctx:      context.Background(),
-					oid:      oid,
-					size:     size,
-					hashAlgo: "sha256",
-				}
-			}(),
-			want: func() usecase.ResponseObject {
-				objErr := usecase.NewObjectError(500, "アップロードURLの生成に失敗しました")
-				return usecase.NewResponseObject("1234567890123456789012345678901234567890123456789012345678901234", 1024, false, nil, &objErr)
-			}(),
-		},
-		{
 			name: "異常系: 無効なハッシュアルゴリズムの場合、400エラーが返る",
 			fields: fields{
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
@@ -214,8 +194,8 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(nil, domain.ErrNotFound)
 					return mock
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					mock := mock_usecase.NewMockStorageKeyGenerator(ctrl)
@@ -228,6 +208,9 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 				size, _ := domain.NewSize(1024)
 				return args{
 					ctx:      context.Background(),
+					baseURL:  "https://example.com",
+					owner:    "test-owner",
+					repo:     "test-repo",
 					oid:      oid,
 					size:     size,
 					hashAlgo: "invalid_algo",
@@ -246,8 +229,8 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(nil, errors.New("database connection error"))
 					return mock
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					return mock_usecase.NewMockStorageKeyGenerator(ctrl)
@@ -258,6 +241,9 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 				size, _ := domain.NewSize(1024)
 				return args{
 					ctx:      context.Background(),
+					baseURL:  "https://example.com",
+					owner:    "test-owner",
+					repo:     "test-repo",
 					oid:      oid,
 					size:     size,
 					hashAlgo: "sha256",
@@ -282,8 +268,8 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(obj, nil)
 					return mock
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					return mock_usecase.NewMockStorageKeyGenerator(ctrl)
@@ -294,6 +280,9 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 				size, _ := domain.NewSize(1024)
 				return args{
 					ctx:      context.Background(),
+					baseURL:  "https://example.com",
+					owner:    "test-owner",
+					repo:     "test-repo",
 					oid:      oid,
 					size:     size,
 					hashAlgo: "sha256",
@@ -312,11 +301,11 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 
 			uc := usecase.NewUploadUseCase(
 				tt.fields.repo(ctrl),
-				tt.fields.s3Client(ctrl),
+				tt.fields.actionURLGenerator(ctrl),
 				tt.fields.storageKeyGenerator(ctrl),
 			)
 
-			got := uc.HandleUploadObject(tt.args.ctx, tt.args.oid, tt.args.size, tt.args.hashAlgo)
+			got := uc.HandleUploadObject(tt.args.ctx, tt.args.baseURL, tt.args.owner, tt.args.repo, tt.args.oid, tt.args.size, tt.args.hashAlgo)
 
 			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(
 				usecase.ResponseObject{},

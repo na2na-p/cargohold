@@ -17,7 +17,7 @@ import (
 const maxBodySize = 10 << 20
 
 type BatchUseCaseInterface interface {
-	HandleBatchRequest(ctx context.Context, req usecase.BatchRequest) (usecase.BatchResponse, error)
+	HandleBatchRequest(ctx context.Context, baseURL, owner, repo string, req usecase.BatchRequest) (usecase.BatchResponse, error)
 }
 
 type BatchHandler struct {
@@ -59,13 +59,28 @@ func (h *BatchHandler) Handle(c echo.Context) error {
 		return SendLFSError(c, http.StatusUnprocessableEntity, "リクエストボディのパースに失敗しました")
 	}
 
-	resp, err := h.batchUseCase.HandleBatchRequest(ctx, req)
+	baseURL := getBaseURL(c)
+	owner := repoID.Owner()
+	repo := repoID.Name()
+
+	resp, err := h.batchUseCase.HandleBatchRequest(ctx, baseURL, owner, repo, req)
 	if err != nil {
 		return h.handleUseCaseError(c, err)
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, GitLFSContentType)
 	return c.JSON(http.StatusOK, resp)
+}
+
+func getBaseURL(c echo.Context) string {
+	scheme := "http"
+	if c.Request().TLS != nil {
+		scheme = "https"
+	}
+	if proto := c.Request().Header.Get("X-Forwarded-Proto"); proto != "" {
+		scheme = proto
+	}
+	return scheme + "://" + c.Request().Host
 }
 
 func (h *BatchHandler) handleUseCaseError(_ echo.Context, err error) error {

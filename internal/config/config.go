@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -10,6 +11,7 @@ import (
 type ServerConfig struct {
 	TrustProxy        bool
 	TrustedProxyCIDRs []string
+	ProxyTimeout      time.Duration
 }
 
 // Config はアプリケーション全体の設定を保持します
@@ -69,6 +71,7 @@ func Load() (*Config, error) {
 	viper.AutomaticEnv()
 
 	viper.SetDefault("server.trustproxy", false)
+	viper.SetDefault("server.proxytimeout", 10*time.Minute)
 	viper.SetDefault("oidc.github.enabled", true)
 	viper.SetDefault("database.sslmode", "require")
 

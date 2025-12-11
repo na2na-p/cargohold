@@ -80,4 +80,7 @@ var (
 
 	// ErrCacheMiss はキャッシュにデータが存在しない場合のエラーです
 	ErrCacheMiss = errors.New("cache miss")
+
+	// ErrNotUploaded はオブジェクトがまだアップロードされていない場合のエラーです
+	ErrNotUploaded = errors.New("object not uploaded yet")
 )

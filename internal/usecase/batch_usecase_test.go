@@ -21,13 +21,16 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 
 	type fields struct {
 		repo                func(ctrl *gomock.Controller) domain.LFSObjectRepository
-		s3Client            func(ctrl *gomock.Controller) usecase.S3Client
+		actionURLGenerator  func(ctrl *gomock.Controller) usecase.ActionURLGenerator
 		policyRepo          func(ctrl *gomock.Controller) domain.AccessPolicyRepository
 		storageKeyGenerator func(ctrl *gomock.Controller) usecase.StorageKeyGenerator
 	}
 	type args struct {
-		ctx context.Context
-		req usecase.BatchRequest
+		ctx     context.Context
+		baseURL string
+		owner   string
+		repo    string
+		req     usecase.BatchRequest
 	}
 	tests := []struct {
 		name    string
@@ -50,9 +53,9 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(obj, nil)
 					return mock
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					mock := mock_usecase.NewMockS3Client(ctrl)
-					mock.EXPECT().GenerateGetURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("https://s3.example.com/presigned-get-url", nil)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					mock := mock_usecase.NewMockActionURLGenerator(ctrl)
+					mock.EXPECT().GenerateDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("http://localhost:8080/owner/repo/objects/download/" + testOID)
 					return mock
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
@@ -68,7 +71,10 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationDownload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, 1024)},
@@ -79,7 +85,7 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				),
 			},
 			want: func() usecase.BatchResponse {
-				downloadAction := usecase.NewAction("https://s3.example.com/presigned-get-url", nil, 900)
+				downloadAction := usecase.NewAction("http://localhost:8080/owner/repo/objects/download/"+testOID, nil, 900)
 				actions := usecase.NewActions(nil, &downloadAction)
 				return usecase.NewBatchResponse(
 					"basic",
@@ -95,8 +101,8 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					return mock_domain.NewMockLFSObjectRepository(ctrl)
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
 					mock := mock_domain.NewMockAccessPolicyRepository(ctrl)
@@ -111,7 +117,10 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationDownload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, 1024)},
@@ -130,8 +139,8 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					return mock_domain.NewMockLFSObjectRepository(ctrl)
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
 					mock := mock_domain.NewMockAccessPolicyRepository(ctrl)
@@ -143,7 +152,10 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationDownload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, 1024)},
@@ -165,9 +177,9 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 					mock.EXPECT().Save(gomock.Any(), gomock.Any()).Return(nil)
 					return mock
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					mock := mock_usecase.NewMockS3Client(ctrl)
-					mock.EXPECT().GeneratePutURL(gomock.Any(), gomock.Any(), gomock.Any()).Return("https://s3.example.com/presigned-put-url", nil)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					mock := mock_usecase.NewMockActionURLGenerator(ctrl)
+					mock.EXPECT().GenerateUploadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("http://localhost:8080/owner/repo/objects/upload/" + testOID)
 					return mock
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
@@ -183,7 +195,10 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationUpload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, 1024)},
@@ -194,7 +209,7 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				),
 			},
 			want: func() usecase.BatchResponse {
-				uploadAction := usecase.NewAction("https://s3.example.com/presigned-put-url", nil, 900)
+				uploadAction := usecase.NewAction("http://localhost:8080/owner/repo/objects/upload/"+testOID, nil, 900)
 				actions := usecase.NewActions(&uploadAction, nil)
 				return usecase.NewBatchResponse(
 					"basic",
@@ -218,8 +233,8 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(obj, nil)
 					return mock
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
 					mock := mock_domain.NewMockAccessPolicyRepository(ctrl)
@@ -234,7 +249,10 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationUpload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, 1024)},
@@ -257,8 +275,8 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					return mock_domain.NewMockLFSObjectRepository(ctrl)
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
 					mock := mock_domain.NewMockAccessPolicyRepository(ctrl)
@@ -273,7 +291,10 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationUpload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, 1024)},
@@ -292,8 +313,8 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					return mock_domain.NewMockLFSObjectRepository(ctrl)
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
 					return mock_domain.NewMockAccessPolicyRepository(ctrl)
@@ -303,7 +324,10 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationDownload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, 1024)},
@@ -322,8 +346,8 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					return mock_domain.NewMockLFSObjectRepository(ctrl)
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
 					return mock_domain.NewMockAccessPolicyRepository(ctrl)
@@ -333,7 +357,10 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.Operation{},
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, 1024)},
@@ -352,8 +379,8 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					return mock_domain.NewMockLFSObjectRepository(ctrl)
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
 					return mock_domain.NewMockAccessPolicyRepository(ctrl)
@@ -363,7 +390,10 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationDownload,
 					[]usecase.RequestObject{},
@@ -382,8 +412,8 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					return mock_domain.NewMockLFSObjectRepository(ctrl)
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
 					return mock_domain.NewMockAccessPolicyRepository(ctrl)
@@ -393,7 +423,10 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationDownload,
 					[]usecase.RequestObject{usecase.NewRequestObject("invalid-oid", 1024)},
@@ -412,8 +445,8 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					return mock_domain.NewMockLFSObjectRepository(ctrl)
 				},
-				s3Client: func(ctrl *gomock.Controller) usecase.S3Client {
-					return mock_usecase.NewMockS3Client(ctrl)
+				actionURLGenerator: func(ctrl *gomock.Controller) usecase.ActionURLGenerator {
+					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
 					return mock_domain.NewMockAccessPolicyRepository(ctrl)
@@ -423,7 +456,10 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.Background(),
+				ctx:     context.Background(),
+				baseURL: "http://localhost:8080",
+				owner:   "owner",
+				repo:    "repo",
 				req: usecase.NewBatchRequest(
 					domain.OperationDownload,
 					[]usecase.RequestObject{usecase.NewRequestObject(testOID, -1)},
@@ -445,12 +481,12 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 
 			uc := usecase.NewBatchUseCase(
 				tt.fields.repo(ctrl),
-				tt.fields.s3Client(ctrl),
+				tt.fields.actionURLGenerator(ctrl),
 				tt.fields.policyRepo(ctrl),
 				tt.fields.storageKeyGenerator(ctrl),
 			)
 
-			got, err := uc.HandleBatchRequest(tt.args.ctx, tt.args.req)
+			got, err := uc.HandleBatchRequest(tt.args.ctx, tt.args.baseURL, tt.args.owner, tt.args.repo, tt.args.req)
 
 			if tt.wantErr != nil {
 				if err == nil {

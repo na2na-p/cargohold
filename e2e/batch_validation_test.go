@@ -1,7 +1,7 @@
 //go:build e2e
 
-// Package e2e_test はE2Eテストを提供します
-package e2e_test
+// Package e2e はE2Eテストを提供します
+package e2e
 
 import (
 	"bytes"
@@ -13,11 +13,10 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/na2na-p/cargohold/e2e"
 )
 
 func TestBatchAPI_ValidationError(t *testing.T) {
-	if err := e2e.SetupE2EEnvironment(); err != nil {
+	if err := SetupE2EEnvironment(); err != nil {
 		t.Fatalf("E2E環境のセットアップに失敗: %v", err)
 	}
 
@@ -205,9 +204,9 @@ func TestBatchAPI_ValidationError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repository := "na2na-p/test-repo"
 			ref := "refs/heads/main"
-			endpoint := e2e.GetBatchEndpoint(repository)
+			endpoint := GetBatchEndpoint(repository)
 
-			token, err := e2e.GenerateJWT(map[string]interface{}{
+			token, err := GenerateJWT(map[string]interface{}{
 				"iss":        "https://token.actions.githubusercontent.com",
 				"sub":        fmt.Sprintf("repo:%s:ref:%s", repository, ref),
 				"aud":        "cargohold",

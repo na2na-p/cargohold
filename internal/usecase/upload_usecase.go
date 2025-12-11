@@ -9,28 +9,28 @@ import (
 )
 
 type UploadUseCase interface {
-	HandleUploadObject(ctx context.Context, oid domain.OID, size domain.Size, hashAlgo string) ResponseObject
+	HandleUploadObject(ctx context.Context, baseURL, owner, repo string, oid domain.OID, size domain.Size, hashAlgo string) ResponseObject
 }
 
 type uploadUseCaseImpl struct {
 	repo                domain.LFSObjectRepository
-	s3Client            S3Client
+	actionURLGenerator  ActionURLGenerator
 	storageKeyGenerator StorageKeyGenerator
 }
 
 func NewUploadUseCase(
 	repo domain.LFSObjectRepository,
-	s3Client S3Client,
+	actionURLGenerator ActionURLGenerator,
 	storageKeyGenerator StorageKeyGenerator,
 ) UploadUseCase {
 	return &uploadUseCaseImpl{
 		repo:                repo,
-		s3Client:            s3Client,
+		actionURLGenerator:  actionURLGenerator,
 		storageKeyGenerator: storageKeyGenerator,
 	}
 }
 
-func (uc *uploadUseCaseImpl) HandleUploadObject(ctx context.Context, oid domain.OID, size domain.Size, hashAlgo string) ResponseObject {
+func (uc *uploadUseCaseImpl) HandleUploadObject(ctx context.Context, baseURL, owner, repo string, oid domain.OID, size domain.Size, hashAlgo string) ResponseObject {
 	obj, err := uc.repo.FindByOID(ctx, oid)
 
 	var storageKey string
@@ -64,15 +64,9 @@ func (uc *uploadUseCaseImpl) HandleUploadObject(ctx context.Context, oid domain.
 			return NewResponseObject(oid.String(), size.Int64(), false, nil, &objectError)
 		}
 		return NewResponseObject(oid.String(), size.Int64(), true, nil, nil)
-	} else {
-		storageKey = obj.GetStorageKey()
 	}
 
-	uploadURL, err := uc.s3Client.GeneratePutURL(ctx, storageKey, PresignedURLTTL)
-	if err != nil {
-		objectError := NewObjectError(500, "アップロードURLの生成に失敗しました")
-		return NewResponseObject(oid.String(), size.Int64(), false, nil, &objectError)
-	}
+	uploadURL := uc.actionURLGenerator.GenerateUploadURL(baseURL, owner, repo, oid.String())
 
 	uploadAction := NewAction(uploadURL, nil, int(PresignedURLTTL.Seconds()))
 	actions := NewActions(&uploadAction, nil)

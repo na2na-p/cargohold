@@ -9,25 +9,25 @@ import (
 )
 
 type DownloadUseCase interface {
-	HandleDownloadObject(ctx context.Context, oid domain.OID, size domain.Size) ResponseObject
+	HandleDownloadObject(ctx context.Context, baseURL, owner, repo string, oid domain.OID, size domain.Size) ResponseObject
 }
 
 type downloadUseCaseImpl struct {
-	repo     domain.LFSObjectRepository
-	s3Client S3Client
+	repo               domain.LFSObjectRepository
+	actionURLGenerator ActionURLGenerator
 }
 
 func NewDownloadUseCase(
 	repo domain.LFSObjectRepository,
-	s3Client S3Client,
+	actionURLGenerator ActionURLGenerator,
 ) DownloadUseCase {
 	return &downloadUseCaseImpl{
-		repo:     repo,
-		s3Client: s3Client,
+		repo:               repo,
+		actionURLGenerator: actionURLGenerator,
 	}
 }
 
-func (uc *downloadUseCaseImpl) HandleDownloadObject(ctx context.Context, oid domain.OID, size domain.Size) ResponseObject {
+func (uc *downloadUseCaseImpl) HandleDownloadObject(ctx context.Context, baseURL, owner, repo string, oid domain.OID, size domain.Size) ResponseObject {
 	obj, err := uc.repo.FindByOID(ctx, oid)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
@@ -43,11 +43,7 @@ func (uc *downloadUseCaseImpl) HandleDownloadObject(ctx context.Context, oid dom
 		return NewResponseObject(oid.String(), size.Int64(), false, nil, &objectError)
 	}
 
-	downloadURL, err := uc.s3Client.GenerateGetURL(ctx, obj.GetStorageKey(), PresignedURLTTL)
-	if err != nil {
-		objectError := NewObjectError(500, "ダウンロードURLの生成に失敗しました")
-		return NewResponseObject(oid.String(), size.Int64(), false, nil, &objectError)
-	}
+	downloadURL := uc.actionURLGenerator.GenerateDownloadURL(baseURL, owner, repo, oid.String())
 
 	downloadAction := NewAction(downloadURL, nil, int(PresignedURLTTL.Seconds()))
 	actions := NewActions(nil, &downloadAction)
