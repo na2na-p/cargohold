@@ -9,7 +9,7 @@ fullnameOverride: ""
 # ============================================================================
 deployment:
   # Set to 0 when an external controller (e.g., Argo Rollouts) manages replicas
-  replicaCount: 1
+  replicaCount: 2
 
   image:
     repository: cargohold
@@ -86,7 +86,7 @@ autoscaling:
     kind: Deployment
 
 podDisruptionBudget:
-  enabled: false
+  enabled: true
   minAvailable: 1
   # maxUnavailable: 1
 
