@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       timeout-minutes:
-        description: "E2Eテストのタイムアウト時間（分）"
+        description: "Timeout for E2E tests in minutes"
         required: false
         type: number
         default: 30
@@ -66,18 +66,18 @@ jobs:
           elapsed=0
           while ! curl -f http://localhost:8080/readyz > /dev/null 2>&1; do
             if [ $elapsed -ge $timeout ]; then
-              echo "cargoholdアプリケーションの起動がタイムアウトしました"
+              echo "Cargohold application startup timed out"
               docker compose logs
               exit 1
             fi
             sleep 2
             elapsed=$((elapsed + 2))
           done
-          echo "cargoholdアプリケーション起動完了（readyzチェック通過）"
+          echo "Cargohold application started successfully (readyz check passed)"
 
       - name: Check services health
         run: |
-          echo "=== サービス状態 ==="
+          echo "=== Service Status ==="
           docker compose ps
 
       - name: Run E2E tests
@@ -87,7 +87,7 @@ jobs:
       - name: Show test logs on failure
         if: failure()
         run: |
-          echo "=== Docker Compose ログ ==="
+          echo "=== Docker Compose Logs ==="
           docker compose logs
 
       - name: Cleanup test environment
