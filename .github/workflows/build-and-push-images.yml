@@ -1,0 +1,78 @@
+name: Build and Push Docker Images
+
+on:
+  workflow_call:
+    inputs:
+      image-tag-suffix:
+        description: 'Image tag suffix (e.g., app-, migration-). If not specified, only commit SHA is used'
+        required: false
+        type: string
+        default: ''
+      timeout-minutes:
+        description: 'Timeout in minutes'
+        required: false
+        type: number
+        default: 30
+    secrets:
+      REGISTRY_NA2NA_DEV_BOT_USERNAME:
+        required: true
+      REGISTRY_NA2NA_DEV_BOT_KEY:
+        required: true
+
+env:
+  REGISTRY: registry.na2na.dev
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Log in to registry.na2na.dev
+        run: |
+          echo "${{ secrets.REGISTRY_NA2NA_DEV_BOT_KEY }}" | docker login registry.na2na.dev -u "${{ secrets.REGISTRY_NA2NA_DEV_BOT_USERNAME }}" --password-stdin
+
+      - name: Set image tags
+        id: tags
+        run: |
+          TAG_SUFFIX="${{ inputs.image-tag-suffix }}"
+          if [ -n "$TAG_SUFFIX" ]; then
+            echo "app_tag=${TAG_SUFFIX}app-$GITHUB_SHA" >> $GITHUB_OUTPUT
+            echo "migration_tag=${TAG_SUFFIX}migration-$GITHUB_SHA" >> $GITHUB_OUTPUT
+          else
+            echo "app_tag=app-$GITHUB_SHA" >> $GITHUB_OUTPUT
+            echo "migration_tag=migration-$GITHUB_SHA" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push application image
+        run: |
+          docker build --platform linux/amd64 \
+            -t $REGISTRY/cargohold/app:${{ steps.tags.outputs.app_tag }} \
+            -f Dockerfile .
+          docker push $REGISTRY/cargohold/app:${{ steps.tags.outputs.app_tag }}
+
+      - name: Build and push migration image
+        run: |
+          docker build --platform linux/amd64 \
+            -t $REGISTRY/cargohold/migration:${{ steps.tags.outputs.migration_tag }} \
+            -f Dockerfile.migration .
+          docker push $REGISTRY/cargohold/migration:${{ steps.tags.outputs.migration_tag }}
+
+      - name: Output image summary
+        run: |
+          echo "## 🐳 Built Docker Images" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Image URI |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Application | \`$REGISTRY/cargohold/app:${{ steps.tags.outputs.app_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Migration | \`$REGISTRY/cargohold/migration:${{ steps.tags.outputs.migration_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Pull Commands" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull $REGISTRY/cargohold/app:${{ steps.tags.outputs.app_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull $REGISTRY/cargohold/migration:${{ steps.tags.outputs.migration_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
