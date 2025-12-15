@@ -1,0 +1,144 @@
+suite: Migration Job tests
+templates:
+  - templates/migration-job.yaml
+  - templates/secret.yaml
+tests:
+  - it: creates Job when migration is enabled
+    template: templates/migration-job.yaml
+    asserts:
+      - isKind:
+          of: Job
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: migration
+
+  - it: has correct Helm hook annotations
+    template: templates/migration-job.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/hook"]
+          value: "pre-install,pre-upgrade"
+      - equal:
+          path: metadata.annotations["helm.sh/hook-weight"]
+          value: "-5"
+      - equal:
+          path: metadata.annotations["helm.sh/hook-delete-policy"]
+          value: "before-hook-creation,hook-succeeded"
+
+  - it: does not create Job when migration is disabled
+    template: templates/migration-job.yaml
+    set:
+      migration:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: configures database environment variables
+    template: templates/migration-job.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_HOST
+            value: "postgres"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_PORT
+            value: "5432"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_USER
+            value: "cargohold"
+
+  - it: uses password from secret
+    template: templates/migration-job.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: RELEASE-NAME-cargohold
+                key: password
+
+  - it: allows custom migration command
+    template: templates/migration-job.yaml
+    set:
+      migration:
+        args: ["status"]
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args
+          value: ["status"]
+
+  - it: sets security context
+    template: templates/migration-job.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 1000
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+
+  - it: allows setting resource limits
+    template: templates/migration-job.yaml
+    set:
+      migration:
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 1000m
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 512Mi
+
+  - it: sets backoff limit
+    template: templates/migration-job.yaml
+    set:
+      migration:
+        backoffLimit: 5
+    asserts:
+      - equal:
+          path: spec.backoffLimit
+          value: 5
+
+  - it: allows adding extra environment variables
+    template: templates/migration-job.yaml
+    set:
+      migration:
+        extraEnv:
+          - name: CUSTOM_VAR
+            value: custom-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CUSTOM_VAR
+            value: custom-value
+
+  - it: uses correct migration image
+    template: templates/migration-job.yaml
+    set:
+      migration:
+        image:
+          repository: custom-repo/cargohold-migration
+          tag: "v1.0.0"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "custom-repo/cargohold-migration:v1.0.0"

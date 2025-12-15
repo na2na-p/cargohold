@@ -1,0 +1,84 @@
+name: Helm CI
+
+on:
+  workflow_call:
+    inputs:
+      helm-chart-path:
+        description: "Path to the Helm chart directory"
+        required: false
+        type: string
+        default: "helm/cargohold"
+      timeout-minutes:
+        description: "Timeout in minutes for each job"
+        required: false
+        type: number
+        default: 10
+
+env:
+  HELM_VERSION: "v3.16.0"
+
+jobs:
+  helm-lint:
+    name: Helm Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Run helm lint
+        run: |
+          helm lint ${{ inputs.helm-chart-path }}
+
+  helm-unittest:
+    name: Helm Unit Test
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Install helm unittest plugin
+        run: |
+          helm plugin install https://github.com/helm-unittest/helm-unittest.git
+
+      - name: Run helm unittest
+        run: |
+          helm unittest ${{ inputs.helm-chart-path }} --color
+
+  helm-template:
+    name: Helm Template Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Run helm template
+        run: |
+          helm template test-release ${{ inputs.helm-chart-path }} > /dev/null
+          echo "Helm template rendering successful"
+
+      - name: Run helm template with different values
+        run: |
+          helm template test-release ${{ inputs.helm-chart-path }} \
+            --set replicaCount=3 \
+            --set autoscaling.enabled=true \
+            --set ingress.enabled=true \
+            > /dev/null
+          echo "Helm template rendering with custom values successful"

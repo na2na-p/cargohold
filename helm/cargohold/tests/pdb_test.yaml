@@ -1,0 +1,52 @@
+suite: PodDisruptionBudget tests
+templates:
+  - templates/pdb.yaml
+tests:
+  - it: does not create PDB by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: creates PDB when podDisruptionBudget.enabled is true
+    set:
+      podDisruptionBudget:
+        enabled: true
+        minAvailable: 1
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.minAvailable
+          value: 1
+
+  - it: allows setting minAvailable
+    set:
+      podDisruptionBudget:
+        enabled: true
+        minAvailable: 2
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 2
+
+  - it: allows setting maxUnavailable
+    set:
+      podDisruptionBudget:
+        enabled: true
+        minAvailable: null
+        maxUnavailable: 1
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 1
+      - notExists:
+          path: spec.minAvailable
+
+  - it: sets selector labels
+    set:
+      podDisruptionBudget:
+        enabled: true
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: cargohold

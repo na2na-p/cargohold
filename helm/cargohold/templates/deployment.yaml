@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cargohold.fullname" . }}
+  labels:
+    {{ include "cargohold.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      {{ include "cargohold.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.deployment.pod.annotations }}
+        {{ toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{ include "cargohold.selectorLabels" . | nindent 8 }}
+        {{- with .Values.deployment.pod.labels }}
+        {{ toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.deployment.imagePullSecrets }}
+      imagePullSecrets:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "cargohold.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+          image: "{{ .Values.deployment.image.repository }}:{{ .Values.deployment.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            {{ toYaml .Values.deployment.container.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{ toYaml .Values.deployment.container.readinessProbe | nindent 12 }}
+          resources:
+            {{ toYaml .Values.deployment.container.resources | nindent 12 }}
+          env:
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.existingSecret | default (include "cargohold.fullname" .) }}
+                  key: {{ .Values.postgres.existingSecretKey | default "database-password" }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redis.existingSecret | default (include "cargohold.fullname" .) }}
+                  key: {{ .Values.redis.existingSecretKey | default "redis-password" }}
+            - name: S3_ACCESSKEYID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3.existingSecret | default (include "cargohold.fullname" .) }}
+                  key: {{ .Values.s3.existingSecretKeys.accessKeyId | default "s3-access-key-id" }}
+            - name: S3_SECRETACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3.existingSecret | default (include "cargohold.fullname" .) }}
+                  key: {{ .Values.s3.existingSecretKeys.secretAccessKey | default "s3-secret-access-key" }}
+            {{- with .Values.extraEnv }}
+            {{ toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            {{- with .Values.extraVolumeMounts }}
+            {{ toYaml . | nindent 12 }}
+            {{- end }}
+        {{- with .Values.extraContainers }}
+        {{ toYaml . | nindent 8 }}
+        {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "cargohold.fullname" . }}
+        {{- with .Values.extraVolumes }}
+        {{ toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.deployment.pod.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.pod.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.pod.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}

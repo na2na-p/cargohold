@@ -1,0 +1,85 @@
+{{- if .Values.migration.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "cargohold.fullname" . }}-migration-{{ .Release.Revision }}
+  labels:
+    {{ include "cargohold.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migration
+  annotations:
+    # Execute before install and upgrade
+    helm.sh/hook: pre-install,pre-upgrade
+    # Execute this job before other resources (lower weight = earlier execution)
+    helm.sh/hook-weight: "-5"
+    # Delete previous job before creating new one
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migration.backoffLimit }}
+  template:
+    metadata:
+      name: {{ include "cargohold.fullname" . }}-migration
+      labels:
+        {{ include "cargohold.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migration
+      {{- with .Values.migration.podAnnotations }}
+      annotations:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: Never
+      {{- with .Values.deployment.imagePullSecrets }}
+      imagePullSecrets:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "cargohold.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: migration
+          image: "{{ .Values.migration.image.repository }}:{{ .Values.migration.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.migration.image.pullPolicy }}
+          command: ["/app/migrate-goose.sh"]
+          args: {{ .Values.migration.args }}
+          env:
+            - name: DATABASE_HOST
+              value: {{ .Values.postgres.host | quote }}
+            - name: DATABASE_PORT
+              value: {{ .Values.postgres.port | quote }}
+            - name: DATABASE_USER
+              value: {{ .Values.postgres.user | quote }}
+            - name: DATABASE_DBNAME
+              value: {{ .Values.postgres.database | quote }}
+            - name: DATABASE_SSLMODE
+              value: {{ .Values.postgres.sslMode | quote }}
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.existingSecret | default (include "cargohold.fullname" .) }}
+                  key: {{ .Values.postgres.existingSecretKey | default "password" }}
+            - name: MIGRATIONS_DIR
+              value: "/app/migrations"
+            {{- with .Values.migration.extraEnv }}
+            {{ toYaml . | nindent 12 }}
+            {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{ toYaml .Values.migration.resources | nindent 12 }}
+      {{- with .Values.deployment.pod.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.deployment.pod.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

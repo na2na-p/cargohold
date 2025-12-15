@@ -1,0 +1,47 @@
+suite: Service tests
+templates:
+  - templates/service.yaml
+tests:
+  - it: creates ClusterIP Service with default values
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - equal:
+          path: spec.ports[0].port
+          value: 80
+      - equal:
+          path: spec.ports[0].targetPort
+          value: 8080
+
+  - it: allows NodePort type configuration
+    set:
+      service:
+        type: NodePort
+        port: 8080
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+      - equal:
+          path: spec.ports[0].port
+          value: 8080
+
+  - it: allows Service annotations
+    set:
+      service:
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "8080"
+    asserts:
+      - equal:
+          path: metadata.annotations["prometheus.io/scrape"]
+          value: "true"
+
+  - it: sets selector labels
+    asserts:
+      - equal:
+          path: spec.selector["app.kubernetes.io/name"]
+          value: cargohold

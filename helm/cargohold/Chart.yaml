@@ -1,0 +1,30 @@
+apiVersion: v2
+name: cargohold
+description: Git LFS Server implementation
+type: application
+
+# Chart version - increment when the chart itself changes
+version: 0.1.0
+
+# Application version - version of the application being deployed
+appVersion: "0.1.0"
+
+# Keywords for chart discovery
+keywords:
+  - git
+  - lfs
+  - git-lfs
+  - storage
+  - s3
+
+# Homepage
+home: https://github.com/na2na-p/Cargohold
+
+# Source code
+sources:
+  - https://github.com/na2na-p/Cargohold
+
+# Maintainers
+maintainers:
+  - name: na2na
+    url: https://github.com/na2na-p

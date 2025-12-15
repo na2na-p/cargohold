@@ -1,0 +1,31 @@
+FROM golang:1.25.5-alpine AS builder
+
+WORKDIR /build
+
+RUN apk add --no-cache git ca-certificates
+
+# Install goose for database migrations
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go install \
+	github.com/pressly/goose/v3/cmd/goose@latest
+
+FROM alpine:3.23
+
+LABEL description="cargohold-migration - Database Migration Tool"
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates && \
+	addgroup -g 1000 app && \
+	adduser -D -u 1000 -G app app
+
+COPY --from=builder /go/bin/goose /usr/local/bin/goose
+COPY migrations /app/migrations
+COPY scripts/migrate-goose.sh /app/migrate-goose.sh
+
+RUN chmod +x /app/migrate-goose.sh && \
+	chown -R app:app /app
+
+USER app
+
+ENTRYPOINT ["/app/migrate-goose.sh"]
+CMD ["up"]

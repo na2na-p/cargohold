@@ -1,0 +1,95 @@
+suite: HorizontalPodAutoscaler tests
+templates:
+  - templates/hpa.yaml
+tests:
+  - it: does not create HPA by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: creates HPA when autoscaling.enabled is true
+    set:
+      autoscaling:
+        enabled: true
+    asserts:
+      - isKind:
+          of: HorizontalPodAutoscaler
+      - equal:
+          path: spec.minReplicas
+          value: 1
+      - equal:
+          path: spec.maxReplicas
+          value: 10
+
+  - it: references Deployment by default in scaleTargetRef
+    set:
+      autoscaling:
+        enabled: true
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.apiVersion
+          value: apps/v1
+      - equal:
+          path: spec.scaleTargetRef.kind
+          value: Deployment
+
+  - it: allows custom scaleTargetRef
+    set:
+      autoscaling:
+        enabled: true
+        scaleTargetRef:
+          apiVersion: argoproj.io/v1alpha1
+          kind: Rollout
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.apiVersion
+          value: argoproj.io/v1alpha1
+      - equal:
+          path: spec.scaleTargetRef.kind
+          value: Rollout
+
+  - it: configures CPU metrics
+    set:
+      autoscaling:
+        enabled: true
+        targetCPUUtilizationPercentage: 70
+    asserts:
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 70
+
+  - it: configures memory metrics
+    set:
+      autoscaling:
+        enabled: true
+        targetMemoryUtilizationPercentage: 75
+    asserts:
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: memory
+              target:
+                type: Utilization
+                averageUtilization: 75
+
+  - it: allows customizing minReplicas and maxReplicas
+    set:
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 20
+    asserts:
+      - equal:
+          path: spec.minReplicas
+          value: 2
+      - equal:
+          path: spec.maxReplicas
+          value: 20
