@@ -1,0 +1,163 @@
+suite: Deployment tests
+templates:
+  - templates/deployment.yaml
+  - templates/configmap.yaml
+  - templates/secret.yaml
+tests:
+  - it: creates Deployment with default values
+    template: templates/deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.replicas
+          value: 2
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "cargohold:0.1.0"
+
+  - it: allows setting replicaCount to 0
+    template: templates/deployment.yaml
+    set:
+      deployment:
+        replicaCount: 0
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 0
+
+  - it: allows setting replicaCount to 3
+    template: templates/deployment.yaml
+    set:
+      deployment:
+        replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  - it: allows custom image configuration
+    template: templates/deployment.yaml
+    set:
+      deployment:
+        image:
+          repository: custom-repo/cargohold
+          tag: "v1.0.0"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "custom-repo/cargohold:v1.0.0"
+
+  - it: sets security context
+    template: templates/deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 1000
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+
+  - it: configures livenessProbe and readinessProbe
+    template: templates/deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /healthz
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /readyz
+
+  - it: mounts ConfigMap
+    template: templates/deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: config
+            configMap:
+              name: RELEASE-NAME-cargohold
+
+  - it: sets Secret environment variables
+    template: templates/deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: RELEASE-NAME-cargohold
+                key: password
+
+  - it: allows using existingSecret
+    template: templates/deployment.yaml
+    set:
+      postgres:
+        existingSecret: my-existing-secret
+        existingSecretKey: database-password
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: my-existing-secret
+                key: database-password
+
+  - it: allows adding extraEnv
+    template: templates/deployment.yaml
+    set:
+      extraEnv:
+        - name: CUSTOM_VAR
+          value: custom-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CUSTOM_VAR
+            value: custom-value
+
+  - it: allows setting resource limits
+    template: templates/deployment.yaml
+    set:
+      deployment:
+        container:
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 500m
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.memory
+          value: 128Mi
+
+  - it: allows adding extraContainers
+    template: templates/deployment.yaml
+    set:
+      extraContainers:
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.0
+          args:
+            - "--port=5432"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers
+          content:
+            name: cloud-sql-proxy
+            image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.0
+            args:
+              - "--port=5432"

@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cargohold.fullname" . }}
+  labels:
+    {{ include "cargohold.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    server:
+      trustProxy: {{ .Values.cargohold.server.trustProxy }}
+      trustedProxyCIDRs:
+        {{- if .Values.cargohold.server.trustedProxyCIDRs }}
+        {{ toYaml .Values.cargohold.server.trustedProxyCIDRs | nindent 8 }}
+        {{- else }}
+        []
+        {{- end }}
+    database:
+      host: {{ .Values.postgres.host | quote }}
+      port: {{ .Values.postgres.port }}
+      user: {{ .Values.postgres.user | quote }}
+      dbName: {{ .Values.postgres.database | quote }}
+      sslMode: {{ .Values.postgres.sslMode | quote }}
+    redis:
+      host: {{ .Values.redis.host | quote }}
+      port: {{ .Values.redis.port }}
+      db: {{ .Values.redis.db }}
+    s3:
+      endpoint: {{ .Values.s3.endpoint | quote }}
+      bucketName: {{ .Values.s3.bucketName | quote }}
+      region: {{ .Values.s3.region | quote }}
+    oidc:
+      github:
+        enabled: {{ .Values.cargohold.oidc.github.enabled }}
+        audience: {{ .Values.cargohold.oidc.github.audience | quote }}
+        jwksUrl: {{ .Values.cargohold.oidc.github.jwksUrl | quote }}

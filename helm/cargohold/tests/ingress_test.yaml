@@ -1,0 +1,98 @@
+suite: Ingress tests
+templates:
+  - templates/ingress.yaml
+tests:
+  - it: does not create Ingress by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: creates Ingress when ingress.enabled is true
+    set:
+      ingress:
+        enabled: true
+        hosts:
+          - host: example.com
+            paths:
+              - path: /
+                pathType: Prefix
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: spec.rules[0].host
+          value: example.com
+
+  - it: allows setting ingressClassName
+    set:
+      ingress:
+        enabled: true
+        className: nginx
+        hosts:
+          - host: example.com
+            paths:
+              - path: /
+                pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: allows TLS configuration
+    set:
+      ingress:
+        enabled: true
+        hosts:
+          - host: example.com
+            paths:
+              - path: /
+                pathType: Prefix
+        tls:
+          - secretName: example-tls
+            hosts:
+              - example.com
+    asserts:
+      - equal:
+          path: spec.tls[0].secretName
+          value: example-tls
+      - contains:
+          path: spec.tls[0].hosts
+          content: example.com
+
+  - it: allows annotations
+    set:
+      ingress:
+        enabled: true
+        annotations:
+          nginx.ingress.kubernetes.io/proxy-body-size: "0"
+        hosts:
+          - host: example.com
+            paths:
+              - path: /
+                pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-body-size"]
+          value: "0"
+
+  - it: allows multiple paths
+    set:
+      ingress:
+        enabled: true
+        hosts:
+          - host: example.com
+            paths:
+              - path: /api
+                pathType: Prefix
+              - path: /healthz
+                pathType: Exact
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: /api
+      - equal:
+          path: spec.rules[0].http.paths[1].path
+          value: /healthz
+      - equal:
+          path: spec.rules[0].http.paths[1].pathType
+          value: Exact

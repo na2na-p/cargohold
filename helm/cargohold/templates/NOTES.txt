@@ -1,0 +1,52 @@
+Cargohold has been installed.
+
+1. Access the application:
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  Run the following commands to get the access URL:
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "cargohold.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+  It may take a few minutes for the LoadBalancer external IP to be assigned.
+  Run the following command to check the status:
+  kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "cargohold.fullname" . }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+  Run the following commands to set up port-forward:
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "cargohold.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  echo "Access the application at http://127.0.0.1:8080"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+{{- end }}
+
+2. Configuration checklist:
+{{- $anyExistingSecret := or .Values.postgres.existingSecret .Values.redis.existingSecret .Values.s3.existingSecret }}
+{{- if not $anyExistingSecret }}
+  - Verify the Secret is configured correctly:
+    kubectl get secret --namespace {{ .Release.Namespace }} {{ include "cargohold.fullname" . }} -o yaml
+{{- else }}
+  - Using existing secrets:
+    {{- if .Values.postgres.existingSecret }}
+    - PostgreSQL: '{{ .Values.postgres.existingSecret }}'
+    {{- end }}
+    {{- if .Values.redis.existingSecret }}
+    - Redis: '{{ .Values.redis.existingSecret }}'
+    {{- end }}
+    {{- if .Values.s3.existingSecret }}
+    - S3: '{{ .Values.s3.existingSecret }}'
+    {{- end }}
+{{- end }}
+  - Database: {{ .Values.postgres.host }}:{{ .Values.postgres.port }}
+  - Redis: {{ .Values.redis.host }}:{{ .Values.redis.port }}
+  - S3 bucket: {{ .Values.s3.bucketName }}
+
+3. Check health status:
+  kubectl --namespace {{ .Release.Namespace }} get pods -l "app.kubernetes.io/name={{ include "cargohold.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+
+4. Run Helm tests:
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
