@@ -91,9 +91,7 @@ jobs:
     with:
       image-tag-suffix: ''
       timeout-minutes: 30
-    secrets:
-      REGISTRY_NA2NA_DEV_BOT_USERNAME: ${{ secrets.REGISTRY_NA2NA_DEV_BOT_USERNAME }}
-      REGISTRY_NA2NA_DEV_BOT_KEY: ${{ secrets.REGISTRY_NA2NA_DEV_BOT_KEY }}
+    secrets: inherit
 
   cd-summary:
     runs-on: ubuntu-latest

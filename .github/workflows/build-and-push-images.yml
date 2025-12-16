@@ -33,9 +33,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Log in to registry.na2na.dev
-        run: |
-          echo "${{ secrets.REGISTRY_NA2NA_DEV_BOT_KEY }}" | docker login registry.na2na.dev -u "${{ secrets.REGISTRY_NA2NA_DEV_BOT_USERNAME }}" --password-stdin
+      - name: Log in to Harbor registry
+        uses: docker/login-action@v3
+        with:
+          registry: registry.na2na.dev
+          username: ${{ secrets.REGISTRY_NA2NA_DEV_BOT_USERNAME }}
+          password: ${{ secrets.REGISTRY_NA2NA_DEV_BOT_KEY }}
 
       - name: Set image tags
         id: tags
