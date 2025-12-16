@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -72,12 +73,21 @@ func NewS3ClientWithPresignFactory(client S3API, presignClient *s3.Client, bucke
 }
 
 func (c *S3Client) PutObject(ctx context.Context, key string, body io.Reader, contentLength int64) error {
-	_, err := c.client.PutObject(ctx, &s3.PutObjectInput{
+	input := &s3.PutObjectInput{
 		Bucket:        aws.String(c.bucket),
 		Key:           aws.String(key),
 		Body:          body,
 		ContentLength: aws.Int64(contentLength),
-	})
+	}
+
+	var err error
+	if realClient, ok := c.client.(*s3.Client); ok {
+		_, err = realClient.PutObject(ctx, input,
+			s3.WithAPIOptions(v4.SwapComputePayloadSHA256ForUnsignedPayloadMiddleware),
+		)
+	} else {
+		_, err = c.client.PutObject(ctx, input)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to put object: %w", err)
 	}
