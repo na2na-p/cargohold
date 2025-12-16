@@ -49,8 +49,10 @@ jobs:
           version: ${{ env.HELM_VERSION }}
 
       - name: Install helm unittest plugin
+        # v1.0.3はinstall-binary.shのバグでインストールに失敗するためv1.0.2を使用
+        # https://github.com/helm-unittest/helm-unittest/issues/790
         run: |
-          helm plugin install https://github.com/helm-unittest/helm-unittest.git
+          helm plugin install https://github.com/helm-unittest/helm-unittest.git --version v1.0.2
 
       - name: Run helm unittest
         run: |
