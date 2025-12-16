@@ -56,7 +56,7 @@ func TestProxyUploadUseCase_Execute(t *testing.T) {
 				},
 				objectStorage: func(ctrl *gomock.Controller) usecase.ObjectStorage {
 					mock := mock_usecase.NewMockObjectStorage(ctrl)
-					mock.EXPECT().PutObject(gomock.Any(), "objects/sha256/12/34/1234567890123456789012345678901234567890123456789012345678901234", gomock.Any()).Return(nil)
+					mock.EXPECT().PutObject(gomock.Any(), "objects/sha256/12/34/1234567890123456789012345678901234567890123456789012345678901234", gomock.Any(), int64(1024)).Return(nil)
 					return mock
 				},
 			},
@@ -204,7 +204,7 @@ func TestProxyUploadUseCase_Execute(t *testing.T) {
 				},
 				objectStorage: func(ctrl *gomock.Controller) usecase.ObjectStorage {
 					mock := mock_usecase.NewMockObjectStorage(ctrl)
-					mock.EXPECT().PutObject(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("storage error"))
+					mock.EXPECT().PutObject(gomock.Any(), gomock.Any(), gomock.Any(), int64(1024)).Return(errors.New("storage error"))
 					return mock
 				},
 			},
@@ -241,7 +241,7 @@ func TestProxyUploadUseCase_Execute(t *testing.T) {
 				},
 				objectStorage: func(ctrl *gomock.Controller) usecase.ObjectStorage {
 					mock := mock_usecase.NewMockObjectStorage(ctrl)
-					mock.EXPECT().PutObject(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+					mock.EXPECT().PutObject(gomock.Any(), gomock.Any(), gomock.Any(), int64(1024)).Return(nil)
 					return mock
 				},
 			},

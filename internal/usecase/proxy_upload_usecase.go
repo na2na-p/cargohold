@@ -54,7 +54,7 @@ func (u *proxyUploadUseCaseImpl) Execute(ctx context.Context, owner, repo string
 	}
 
 	storageKey := lfsObject.GetStorageKey()
-	if err := u.objectStorage.PutObject(ctx, storageKey, body); err != nil {
+	if err := u.objectStorage.PutObject(ctx, storageKey, body, lfsObject.Size().Int64()); err != nil {
 		return err
 	}
 

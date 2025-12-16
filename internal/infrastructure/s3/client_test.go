@@ -12,14 +12,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// TestS3Client_PutObject はPutObjectのテーブルドリブンテスト
 func TestS3Client_PutObject(t *testing.T) {
 	type fields struct {
 		mockAPI func() S3API
 	}
 	type args struct {
-		key     string
-		content string
+		key           string
+		content       string
+		contentLength int64
 	}
 	tests := []struct {
 		name    string
@@ -37,8 +37,9 @@ func TestS3Client_PutObject(t *testing.T) {
 				},
 			},
 			args: args{
-				key:     "test/object.txt",
-				content: "Hello, S3!",
+				key:           "test/object.txt",
+				content:       "Hello, S3!",
+				contentLength: 10,
 			},
 			wantErr: false,
 		},
@@ -52,8 +53,9 @@ func TestS3Client_PutObject(t *testing.T) {
 				},
 			},
 			args: args{
-				key:     "test/large.txt",
-				content: strings.Repeat("A", 10000),
+				key:           "test/large.txt",
+				content:       strings.Repeat("A", 10000),
+				contentLength: 10000,
 			},
 			wantErr: false,
 		},
@@ -67,8 +69,9 @@ func TestS3Client_PutObject(t *testing.T) {
 				},
 			},
 			args: args{
-				key:     "test/special-chars_123.txt",
-				content: "Special content",
+				key:           "test/special-chars_123.txt",
+				content:       "Special content",
+				contentLength: 15,
 			},
 			wantErr: false,
 		},
@@ -82,8 +85,9 @@ func TestS3Client_PutObject(t *testing.T) {
 				},
 			},
 			args: args{
-				key:     "test/empty.txt",
-				content: "",
+				key:           "test/empty.txt",
+				content:       "",
+				contentLength: 0,
 			},
 			wantErr: false,
 		},
@@ -99,8 +103,9 @@ func TestS3Client_PutObject(t *testing.T) {
 				},
 			},
 			args: args{
-				key:     "test/error.txt",
-				content: "content",
+				key:           "test/error.txt",
+				content:       "content",
+				contentLength: 7,
 			},
 			wantErr: true,
 		},
@@ -111,7 +116,7 @@ func TestS3Client_PutObject(t *testing.T) {
 			ctx := context.Background()
 			client := NewMockS3Client(tt.fields.mockAPI(), "test-bucket")
 
-			err := client.PutObject(ctx, tt.args.key, strings.NewReader(tt.args.content))
+			err := client.PutObject(ctx, tt.args.key, strings.NewReader(tt.args.content), tt.args.contentLength)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("PutObject() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -380,7 +385,7 @@ func TestS3Client_Integration(t *testing.T) {
 			client := NewMockS3Client(mockAPI, "test-bucket")
 
 			// Put
-			if err := client.PutObject(ctx, tt.args.key, strings.NewReader(tt.args.content)); err != nil {
+			if err := client.PutObject(ctx, tt.args.key, strings.NewReader(tt.args.content), int64(len(tt.args.content))); err != nil {
 				t.Fatalf("PutObject failed: %v", err)
 			}
 
@@ -484,7 +489,7 @@ func TestS3Client_MultipleObjects(t *testing.T) {
 
 			// 全てのオブジェクトをアップロード
 			for _, obj := range tt.objects {
-				if err := client.PutObject(ctx, obj.key, strings.NewReader(obj.content)); err != nil {
+				if err := client.PutObject(ctx, obj.key, strings.NewReader(obj.content), int64(len(obj.content))); err != nil {
 					t.Fatalf("PutObject failed (key=%s): %v", obj.key, err)
 				}
 			}

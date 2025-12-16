@@ -1,7 +1,6 @@
 package s3
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -72,17 +71,12 @@ func NewS3ClientWithPresignFactory(client S3API, presignClient *s3.Client, bucke
 	}
 }
 
-func (c *S3Client) PutObject(ctx context.Context, key string, body io.Reader) error {
-	// AWS SDK v2のPutObjectはV4署名のためにio.ReadSeekerを必要とする
-	data, err := io.ReadAll(body)
-	if err != nil {
-		return fmt.Errorf("failed to read body: %w", err)
-	}
-
-	_, err = c.client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(c.bucket),
-		Key:    aws.String(key),
-		Body:   bytes.NewReader(data),
+func (c *S3Client) PutObject(ctx context.Context, key string, body io.Reader, contentLength int64) error {
+	_, err := c.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:        aws.String(c.bucket),
+		Key:           aws.String(key),
+		Body:          body,
+		ContentLength: aws.Int64(contentLength),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to put object: %w", err)
