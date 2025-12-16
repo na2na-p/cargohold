@@ -15,7 +15,7 @@ on:
         default: 10
 
 env:
-  HELM_VERSION: "v3.16.0"
+  HELM_VERSION: "v3.19.4"
 
 jobs:
   helm-lint:
