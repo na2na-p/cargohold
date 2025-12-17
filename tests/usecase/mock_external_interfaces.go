@@ -350,17 +350,17 @@ func (mr *MockObjectStorageMockRecorder) GetObject(ctx, key any) *gomock.Call {
 }
 
 // PutObject mocks base method.
-func (m *MockObjectStorage) PutObject(ctx context.Context, key string, body io.Reader) error {
+func (m *MockObjectStorage) PutObject(ctx context.Context, key string, body io.Reader, contentLength int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PutObject", ctx, key, body)
+	ret := m.ctrl.Call(m, "PutObject", ctx, key, body, contentLength)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PutObject indicates an expected call of PutObject.
-func (mr *MockObjectStorageMockRecorder) PutObject(ctx, key, body any) *gomock.Call {
+func (mr *MockObjectStorageMockRecorder) PutObject(ctx, key, body, contentLength any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutObject", reflect.TypeOf((*MockObjectStorage)(nil).PutObject), ctx, key, body)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutObject", reflect.TypeOf((*MockObjectStorage)(nil).PutObject), ctx, key, body, contentLength)
 }
 
 // MockActionURLGenerator is a mock of ActionURLGenerator interface.

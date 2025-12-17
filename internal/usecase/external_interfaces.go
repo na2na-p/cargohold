@@ -35,7 +35,7 @@ type S3Client interface {
 }
 
 type ObjectStorage interface {
-	PutObject(ctx context.Context, key string, body io.Reader) error
+	PutObject(ctx context.Context, key string, body io.Reader, contentLength int64) error
 	GetObject(ctx context.Context, key string) (io.ReadCloser, error)
 }
 
