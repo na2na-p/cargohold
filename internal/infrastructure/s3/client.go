@@ -89,7 +89,7 @@ func (c *S3Client) PutObject(ctx context.Context, key string, body io.Reader, co
 		_, err = c.client.PutObject(ctx, input)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to put object: %w", err)
+		return NewStorageError(OperationPut, err)
 	}
 
 	return nil
@@ -101,7 +101,7 @@ func (c *S3Client) GetObject(ctx context.Context, key string) (io.ReadCloser, er
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get object: %w", err)
+		return nil, NewStorageError(OperationGet, err)
 	}
 
 	return result.Body, nil
@@ -124,7 +124,7 @@ func (c *S3Client) HeadObject(ctx context.Context, key string) (bool, error) {
 				return false, nil
 			}
 		}
-		return false, fmt.Errorf("failed to head object: %w", err)
+		return false, NewStorageError(OperationHead, err)
 	}
 
 	return true, nil

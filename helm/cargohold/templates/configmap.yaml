@@ -33,3 +33,18 @@ data:
         enabled: {{ .Values.cargohold.oidc.github.enabled }}
         audience: {{ .Values.cargohold.oidc.github.audience | quote }}
         jwksUrl: {{ .Values.cargohold.oidc.github.jwksUrl | quote }}
+    oauth:
+      github:
+        enabled: {{ .Values.cargohold.oauth.github.enabled }}
+        allowedHosts:
+          {{- if .Values.cargohold.oauth.github.allowedHosts }}
+          {{ toYaml .Values.cargohold.oauth.github.allowedHosts | nindent 10 }}
+          {{- else }}
+          []
+          {{- end }}
+        allowedRedirectUris:
+          {{- if .Values.cargohold.oauth.github.allowedRedirectUris }}
+          {{ toYaml .Values.cargohold.oauth.github.allowedRedirectUris | nindent 10 }}
+          {{- else }}
+          []
+          {{- end }}

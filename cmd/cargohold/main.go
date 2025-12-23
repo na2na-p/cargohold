@@ -18,6 +18,7 @@ import (
 	"github.com/na2na-p/cargohold/internal/config"
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler"
+	"github.com/na2na-p/cargohold/internal/handler/auth"
 	authMiddleware "github.com/na2na-p/cargohold/internal/handler/middleware"
 	"github.com/na2na-p/cargohold/internal/infrastructure"
 	"github.com/na2na-p/cargohold/internal/infrastructure/logging"
@@ -112,6 +113,38 @@ func run() error {
 		slog.Info("GitHub OIDC provider initialized")
 	}
 
+	var githubOAuthUC *usecase.GitHubOAuthUseCase
+	if cfg.OAuth.GitHub.Enabled {
+		githubOAuthProvider, err := oidc.NewGitHubOAuthProvider(
+			cfg.OAuth.GitHub.ClientID,
+			cfg.OAuth.GitHub.ClientSecret,
+			"",
+		)
+		if err != nil {
+			return err
+		}
+
+		oauthProviderAdapter := oidc.NewGitHubOAuthProviderAdapter(githubOAuthProvider)
+		oauthStateStore := redis.NewOAuthStateStore(redisClient)
+		sessionStoreAdapter := redis.NewSessionStoreAdapterWithDefaults(redisClient)
+
+		allowedRedirectURIs, err := domain.NewAllowedRedirectURIs(cfg.OAuth.GitHub.AllowedRedirectURIs)
+		if err != nil {
+			return fmt.Errorf("failed to create AllowedRedirectURIs: %w", err)
+		}
+
+		githubOAuthUC, err = usecase.NewGitHubOAuthUseCase(
+			oauthProviderAdapter,
+			sessionStoreAdapter,
+			oauthStateStore,
+			allowedRedirectURIs,
+		)
+		if err != nil {
+			return err
+		}
+		slog.Info("GitHub OAuth provider initialized")
+	}
+
 	cacheKeyGenerator := redis.NewCacheKeyGenerator()
 	cacheConfig := redis.NewCacheConfig()
 	storageKeyGenerator := s3.NewStorageKeyGenerator()
@@ -126,12 +159,11 @@ func run() error {
 
 	cachingRepoAllowlist := infrastructure.NewCachingRepositoryAllowlist(repoAllowlistRepo, redisClient)
 	authUC := usecase.NewAuthUseCase(githubProvider, cachingRepoAllowlist, redisClient, cacheKeyGenerator)
-	batchUC := usecase.NewBatchUseCase(cachingRepo, proxyActionURLGenerator, policyRepo, storageKeyGenerator)
+	accessAuthService := domain.NewAccessAuthorizationService(policyRepo)
+	batchUC := usecase.NewBatchUseCase(cachingRepo, proxyActionURLGenerator, policyRepo, storageKeyGenerator, accessAuthService)
 	verifyUC := usecase.NewVerifyUseCase(cachingRepo, cachingRepo)
-
-	proxyAuthService := domain.NewAccessAuthorizationService(policyRepo)
-	proxyUploadUC := usecase.NewProxyUploadUseCase(cachingRepo, s3Client, proxyAuthService)
-	proxyDownloadUC := usecase.NewProxyDownloadUseCase(cachingRepo, s3Client, proxyAuthService)
+	proxyUploadUC := usecase.NewProxyUploadUseCase(cachingRepo, s3Client, accessAuthService)
+	proxyDownloadUC := usecase.NewProxyDownloadUseCase(cachingRepo, s3Client, accessAuthService)
 	proxyHandler := handler.NewProxyHandler(proxyUploadUC, proxyDownloadUC, cfg.Server.ProxyTimeout)
 
 	postgresHealthChecker := postgres.NewPostgresHealthChecker(pool)
@@ -173,6 +205,17 @@ func run() error {
 	lfsGroup.POST("/objects/verify", handler.VerifyHandler(verifyUC))
 	lfsGroup.PUT("/objects/:oid", proxyHandler.HandleUpload)
 	lfsGroup.GET("/objects/:oid", proxyHandler.HandleDownload)
+
+	if githubOAuthUC != nil {
+		loginHandlerConfig := auth.GitHubLoginHandlerConfig{
+			TrustProxy:   cfg.Server.TrustProxy,
+			AllowedHosts: cfg.OAuth.GitHub.AllowedHosts,
+		}
+		authGroup := e.Group("/auth/github")
+		authGroup.GET("/login", auth.GitHubLoginHandler(githubOAuthUC, loginHandlerConfig))
+		authGroup.GET("/callback", auth.GitHubCallbackHandler(githubOAuthUC))
+		slog.Info("GitHub OAuth routes registered")
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {

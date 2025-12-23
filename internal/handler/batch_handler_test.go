@@ -15,13 +15,13 @@ import (
 	"github.com/na2na-p/cargohold/internal/handler"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
 	"github.com/na2na-p/cargohold/internal/usecase"
-	mock_handler "github.com/na2na-p/cargohold/tests/handler"
+	mock_usecase "github.com/na2na-p/cargohold/tests/usecase"
 	"go.uber.org/mock/gomock"
 )
 
 func TestBatchHandler_Handle(t *testing.T) {
 	type fields struct {
-		setupMock func(ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface
+		setupMock func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface
 	}
 	type args struct {
 		method  string
@@ -41,8 +41,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 		{
 			name: "正常系: uploadオペレーションが成功する",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					m := mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest) (usecase.BatchResponse, error) {
 							uploadAction := usecase.NewAction("https://s3.example.com/upload", nil, 900)
@@ -101,8 +101,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 		{
 			name: "正常系: downloadオペレーションが成功する",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					m := mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest) (usecase.BatchResponse, error) {
 							downloadAction := usecase.NewAction("https://s3.example.com/download", nil, 900)
@@ -161,8 +161,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 		{
 			name: "異常系: Acceptヘッダーが不正な場合、400エラーが返る",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					return mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					return mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 				},
 			},
 			args: args{
@@ -192,8 +192,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 		{
 			name: "異常系: Content-Typeヘッダーが不正な場合、400エラーが返る",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					return mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					return mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 				},
 			},
 			args: args{
@@ -223,8 +223,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 		{
 			name: "異常系: リクエストボディのパースに失敗した場合、422エラーが返る",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					return mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					return mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 				},
 			},
 			args: args{
@@ -246,8 +246,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 		{
 			name: "異常系: UseCaseが不正なオペレーションエラーを返した場合、422エラーが返る",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					m := mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("", []usecase.ResponseObject{}, ""), usecase.ErrInvalidOperation,
 					)
@@ -281,8 +281,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 		{
 			name: "異常系: UseCaseが空のオブジェクトエラーを返した場合、422エラーが返る",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					m := mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("", []usecase.ResponseObject{}, ""), usecase.ErrNoObjects,
 					)
@@ -311,8 +311,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 		{
 			name: "異常系: UseCaseが不正なOIDエラーを返した場合、422エラーが返る",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					m := mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("", []usecase.ResponseObject{}, ""), usecase.ErrInvalidOID,
 					)
@@ -346,8 +346,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 		{
 			name: "異常系: UseCaseが不正なサイズエラーを返した場合、422エラーが返る",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					m := mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("", []usecase.ResponseObject{}, ""), usecase.ErrInvalidSize,
 					)
@@ -381,8 +381,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 		{
 			name: "異常系: UseCaseが不正なハッシュアルゴリズムエラーを返した場合、422エラーが返る",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					m := mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("", []usecase.ResponseObject{}, ""), usecase.ErrInvalidHashAlgorithm,
 					)
@@ -417,8 +417,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 		{
 			name: "異常系: UseCaseが未知のエラーを返した場合、500エラーが返る",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					m := mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("", []usecase.ResponseObject{}, ""), errors.New("unknown error"),
 					)
@@ -452,8 +452,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 		{
 			name: "正常系: Per-objectエラーを含むレスポンスが正しく返る",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					m := mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest) (usecase.BatchResponse, error) {
 							objErr := usecase.NewObjectError(404, "オブジェクトが存在しません")
@@ -557,7 +557,7 @@ func TestBatchHandler_Handle(t *testing.T) {
 func TestBatchHandler_Integration(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupMock      func(t *testing.T, ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface
+		setupMock      func(t *testing.T, ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface
 		requestBody    string
 		setupHeaders   func(req *http.Request)
 		wantStatusCode int
@@ -565,8 +565,8 @@ func TestBatchHandler_Integration(t *testing.T) {
 	}{
 		{
 			name: "統合: 正常なuploadリクエストが成功する",
-			setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-				m := mock_handler.NewMockBatchUseCaseInterface(ctrl)
+			setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+				m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 				m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 					func(_ interface{}, _, _, _ string, req usecase.BatchRequest) (usecase.BatchResponse, error) {
 						if req.Operation().String() != "upload" {
@@ -621,8 +621,8 @@ func TestBatchHandler_Integration(t *testing.T) {
 		},
 		{
 			name: "統合: ヘッダー不正でエラーが返る",
-			setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-				return mock_handler.NewMockBatchUseCaseInterface(ctrl)
+			setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+				return mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 			},
 			requestBody: `{"operation": "upload"}`,
 			setupHeaders: func(req *http.Request) {
@@ -675,7 +675,7 @@ func TestBatchHandler_Integration(t *testing.T) {
 
 func TestBatchHandler_Handle_PayloadTooLarge(t *testing.T) {
 	type fields struct {
-		setupMock func(t *testing.T, ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface
+		setupMock func(t *testing.T, ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface
 	}
 	type args struct {
 		body    io.Reader
@@ -691,8 +691,8 @@ func TestBatchHandler_Handle_PayloadTooLarge(t *testing.T) {
 		{
 			name: "異常系: リクエストボディが10MBを超える場合、413エラーが返る",
 			fields: fields{
-				setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					return mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					return mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 				},
 			},
 			args: args{
@@ -710,8 +710,8 @@ func TestBatchHandler_Handle_PayloadTooLarge(t *testing.T) {
 		{
 			name: "正常系: リクエストボディが10MB以下の場合、処理が継続する",
 			fields: fields{
-				setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_handler.MockBatchUseCaseInterface {
-					m := mock_handler.NewMockBatchUseCaseInterface(ctrl)
+				setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
 					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("basic", []usecase.ResponseObject{}, "sha256"), nil,
 					)

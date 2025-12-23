@@ -107,6 +107,25 @@ cargohold:
       audience: "cargohold"
       jwksUrl: "https://token.actions.githubusercontent.com/.well-known/jwks"
 
+  oauth:
+    github:
+      enabled: false
+      # GitHub OAuth App の Client ID
+      # existingSecretが空の場合は必須
+      clientId: ""
+      # GitHub OAuth App の Client Secret
+      # existingSecretが空の場合は必須
+      clientSecret: ""
+      # Host Header検証用（オープンリダイレクト対策）
+      allowedHosts: []
+      # 許可するリダイレクトURI
+      allowedRedirectUris: []
+      # 既存のSecretを使用する場合（設定した場合、clientId/clientSecretは不要）
+      existingSecret: ""
+      existingSecretKeys:
+        clientId: "github-oauth-client-id"
+        clientSecret: "github-oauth-client-secret"
+
 # ============================================================================
 # Database Migration Configuration
 # ============================================================================
@@ -159,7 +178,10 @@ redis:
   host: "redis"
   port: 6379
   db: 0
-  # Password for Redis authentication
+  # Enable Redis authentication (set to false for password-less Redis)
+  auth:
+    enabled: false
+  # Password for Redis authentication (only used when auth.enabled is true)
   password: ""
   # Name of existing secret to use (takes precedence over password)
   existingSecret: ""

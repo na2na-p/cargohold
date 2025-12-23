@@ -621,3 +621,93 @@ func TestS3Client_HeadBucket(t *testing.T) {
 		})
 	}
 }
+
+func TestS3Client_ErrorTypes(t *testing.T) {
+	t.Run("PutObject returns StorageError with OperationPut", func(t *testing.T) {
+		ctx := context.Background()
+		mockAPI := &MockS3API{
+			PutObjectFunc: func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
+				return nil, errors.New("mock s3 error")
+			},
+		}
+		client := NewMockS3Client(mockAPI, "test-bucket")
+
+		err := client.PutObject(ctx, "test/key", strings.NewReader("content"), 7)
+		if err == nil {
+			t.Fatal("want error, but got nil")
+		}
+
+		var storageErr *StorageError
+		if !errors.As(err, &storageErr) {
+			t.Fatalf("want StorageError, but got %T", err)
+		}
+		if storageErr.Operation != OperationPut {
+			t.Errorf("want OperationPut, but got %s", storageErr.Operation)
+		}
+	})
+
+	t.Run("GetObject returns StorageError with OperationGet", func(t *testing.T) {
+		ctx := context.Background()
+		mockAPI := &MockS3API{
+			GetObjectFunc: func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+				return nil, errors.New("mock s3 error")
+			},
+		}
+		client := NewMockS3Client(mockAPI, "test-bucket")
+
+		_, err := client.GetObject(ctx, "test/key")
+		if err == nil {
+			t.Fatal("want error, but got nil")
+		}
+
+		var storageErr *StorageError
+		if !errors.As(err, &storageErr) {
+			t.Fatalf("want StorageError, but got %T", err)
+		}
+		if storageErr.Operation != OperationGet {
+			t.Errorf("want OperationGet, but got %s", storageErr.Operation)
+		}
+	})
+
+	t.Run("HeadObject returns StorageError with OperationHead", func(t *testing.T) {
+		ctx := context.Background()
+		mockAPI := &MockS3API{
+			HeadObjectFunc: func(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
+				return nil, errors.New("mock internal server error")
+			},
+		}
+		client := NewMockS3Client(mockAPI, "test-bucket")
+
+		_, err := client.HeadObject(ctx, "test/key")
+		if err == nil {
+			t.Fatal("want error, but got nil")
+		}
+
+		var storageErr *StorageError
+		if !errors.As(err, &storageErr) {
+			t.Fatalf("want StorageError, but got %T", err)
+		}
+		if storageErr.Operation != OperationHead {
+			t.Errorf("want OperationHead, but got %s", storageErr.Operation)
+		}
+	})
+
+	t.Run("IsStorageError returns true for wrapped StorageError", func(t *testing.T) {
+		ctx := context.Background()
+		mockAPI := &MockS3API{
+			PutObjectFunc: func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
+				return nil, errors.New("mock s3 error")
+			},
+		}
+		client := NewMockS3Client(mockAPI, "test-bucket")
+
+		err := client.PutObject(ctx, "test/key", strings.NewReader("content"), 7)
+		if err == nil {
+			t.Fatal("want error, but got nil")
+		}
+
+		if !IsStorageError(err) {
+			t.Error("IsStorageError() = false, want true")
+		}
+	})
+}

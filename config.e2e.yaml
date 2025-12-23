@@ -35,3 +35,16 @@ oidc:
     enabled: true
     audience: cargohold
     jwksurl: http://jwks-mock/.well-known/jwks
+
+# OAuth設定
+oauth:
+  github:
+    enabled: true
+    clientid: test-client-id
+    clientsecret: test-client-secret
+    allowedhosts:
+      - "localhost:8080"
+      - "cargohold:8080"
+    allowedredirecturis:
+      - "http://localhost:8080/auth/github/callback"
+      - "http://cargohold:8080/auth/github/callback"

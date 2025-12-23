@@ -42,11 +42,11 @@ func TestNewGitHubOAuthProvider(t *testing.T) {
 			wantErr:      true,
 		},
 		{
-			name:         "異常系: redirectURIが空の場合、エラーが返る",
+			name:         "正常系: redirectURIが空の場合も動的設定可能でプロバイダーが作成される",
 			clientID:     "test-client-id",
 			clientSecret: "test-client-secret",
 			redirectURI:  "",
-			wantErr:      true,
+			wantErr:      false,
 		},
 	}
 

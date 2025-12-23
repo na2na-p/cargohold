@@ -14,6 +14,7 @@ const (
 )
 
 type GitHubOAuthProviderInterface interface {
+	SetRedirectURI(redirectURI string)
 	GetAuthorizationURL(state string, scopes []string) string
 	ExchangeCode(ctx context.Context, code string) (*OAuthTokenResult, error)
 	GetUserInfo(ctx context.Context, token *OAuthTokenResult) (*GitHubUserResult, error)
@@ -21,8 +22,8 @@ type GitHubOAuthProviderInterface interface {
 }
 
 type OAuthStateStoreInterface interface {
-	SaveState(ctx context.Context, state string, data *OAuthStateData, ttl time.Duration) error
-	GetAndDeleteState(ctx context.Context, state string) (*OAuthStateData, error)
+	SaveState(ctx context.Context, state string, data *domain.OAuthState, ttl time.Duration) error
+	GetAndDeleteState(ctx context.Context, state string) (*domain.OAuthState, error)
 }
 
 type SessionStoreInterface interface {

@@ -56,6 +56,10 @@ func (p *GitHubOAuthProvider) SetAPIEndpoint(endpoint string) {
 	p.repositoryChecker.SetAPIEndpoint(endpoint)
 }
 
+func (p *GitHubOAuthProvider) SetRedirectURI(redirectURI string) {
+	p.tokenExchanger.SetRedirectURI(redirectURI)
+}
+
 func (p *GitHubOAuthProvider) GetAuthorizationURL(state string, scopes []string) string {
 	return p.tokenExchanger.GetAuthorizationURL(state, scopes)
 }

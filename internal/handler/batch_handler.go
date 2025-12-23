@@ -1,8 +1,6 @@
-//go:generate mockgen -source=$GOFILE -destination=../../tests/handler/mock_batch_handler.go -package=handler
 package handler
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -16,15 +14,11 @@ import (
 
 const maxBodySize = 10 << 20
 
-type BatchUseCaseInterface interface {
-	HandleBatchRequest(ctx context.Context, baseURL, owner, repo string, req usecase.BatchRequest) (usecase.BatchResponse, error)
-}
-
 type BatchHandler struct {
-	batchUseCase BatchUseCaseInterface
+	batchUseCase usecase.BatchUseCaseInterface
 }
 
-func NewBatchHandler(batchUseCase BatchUseCaseInterface) *BatchHandler {
+func NewBatchHandler(batchUseCase usecase.BatchUseCaseInterface) *BatchHandler {
 	return &BatchHandler{
 		batchUseCase: batchUseCase,
 	}

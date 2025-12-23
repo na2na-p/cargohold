@@ -102,6 +102,18 @@ func (mr *MockGitHubOAuthProviderInterfaceMockRecorder) GetUserInfo(ctx, token a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserInfo", reflect.TypeOf((*MockGitHubOAuthProviderInterface)(nil).GetUserInfo), ctx, token)
 }
 
+// SetRedirectURI mocks base method.
+func (m *MockGitHubOAuthProviderInterface) SetRedirectURI(redirectURI string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetRedirectURI", redirectURI)
+}
+
+// SetRedirectURI indicates an expected call of SetRedirectURI.
+func (mr *MockGitHubOAuthProviderInterfaceMockRecorder) SetRedirectURI(redirectURI any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRedirectURI", reflect.TypeOf((*MockGitHubOAuthProviderInterface)(nil).SetRedirectURI), redirectURI)
+}
+
 // MockOAuthStateStoreInterface is a mock of OAuthStateStoreInterface interface.
 type MockOAuthStateStoreInterface struct {
 	ctrl     *gomock.Controller
@@ -127,10 +139,10 @@ func (m *MockOAuthStateStoreInterface) EXPECT() *MockOAuthStateStoreInterfaceMoc
 }
 
 // GetAndDeleteState mocks base method.
-func (m *MockOAuthStateStoreInterface) GetAndDeleteState(ctx context.Context, state string) (*usecase.OAuthStateData, error) {
+func (m *MockOAuthStateStoreInterface) GetAndDeleteState(ctx context.Context, state string) (*domain.OAuthState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAndDeleteState", ctx, state)
-	ret0, _ := ret[0].(*usecase.OAuthStateData)
+	ret0, _ := ret[0].(*domain.OAuthState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -142,7 +154,7 @@ func (mr *MockOAuthStateStoreInterfaceMockRecorder) GetAndDeleteState(ctx, state
 }
 
 // SaveState mocks base method.
-func (m *MockOAuthStateStoreInterface) SaveState(ctx context.Context, state string, data *usecase.OAuthStateData, ttl time.Duration) error {
+func (m *MockOAuthStateStoreInterface) SaveState(ctx context.Context, state string, data *domain.OAuthState, ttl time.Duration) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SaveState", ctx, state, data, ttl)
 	ret0, _ := ret[0].(error)

@@ -12,13 +12,13 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/na2na-p/cargohold/internal/handler"
 	"github.com/na2na-p/cargohold/internal/usecase"
-	mock_handler "github.com/na2na-p/cargohold/tests/handler"
+	mock_usecase "github.com/na2na-p/cargohold/tests/usecase"
 	"go.uber.org/mock/gomock"
 )
 
 func TestVerifyHandler(t *testing.T) {
 	type fields struct {
-		usecase func(ctrl *gomock.Controller) handler.VerifyUseCase
+		usecase func(ctrl *gomock.Controller) usecase.VerifyUseCaseInterface
 	}
 	type args struct {
 		body        interface{}
@@ -37,8 +37,8 @@ func TestVerifyHandler(t *testing.T) {
 		{
 			name: "正常系: アップロード完了通知が成功する",
 			fields: fields{
-				usecase: func(ctrl *gomock.Controller) handler.VerifyUseCase {
-					mock := mock_handler.NewMockVerifyUseCase(ctrl)
+				usecase: func(ctrl *gomock.Controller) usecase.VerifyUseCaseInterface {
+					mock := mock_usecase.NewMockVerifyUseCaseInterface(ctrl)
 					mock.EXPECT().VerifyUpload(gomock.Any(), "abc123def4567890abc123def4567890abc123def4567890abc123def4567890", int64(1024)).Return(nil).Times(1)
 					return mock
 				},
@@ -61,8 +61,8 @@ func TestVerifyHandler(t *testing.T) {
 		{
 			name: "異常系: Content-Typeヘッダーが不正",
 			fields: fields{
-				usecase: func(ctrl *gomock.Controller) handler.VerifyUseCase {
-					mock := mock_handler.NewMockVerifyUseCase(ctrl)
+				usecase: func(ctrl *gomock.Controller) usecase.VerifyUseCaseInterface {
+					mock := mock_usecase.NewMockVerifyUseCaseInterface(ctrl)
 					return mock
 				},
 			},
@@ -84,8 +84,8 @@ func TestVerifyHandler(t *testing.T) {
 		{
 			name: "異常系: Acceptヘッダーが不正",
 			fields: fields{
-				usecase: func(ctrl *gomock.Controller) handler.VerifyUseCase {
-					mock := mock_handler.NewMockVerifyUseCase(ctrl)
+				usecase: func(ctrl *gomock.Controller) usecase.VerifyUseCaseInterface {
+					mock := mock_usecase.NewMockVerifyUseCaseInterface(ctrl)
 					return mock
 				},
 			},
@@ -107,8 +107,8 @@ func TestVerifyHandler(t *testing.T) {
 		{
 			name: "異常系: リクエストボディが不正なJSON",
 			fields: fields{
-				usecase: func(ctrl *gomock.Controller) handler.VerifyUseCase {
-					mock := mock_handler.NewMockVerifyUseCase(ctrl)
+				usecase: func(ctrl *gomock.Controller) usecase.VerifyUseCaseInterface {
+					mock := mock_usecase.NewMockVerifyUseCaseInterface(ctrl)
 					return mock
 				},
 			},
@@ -127,8 +127,8 @@ func TestVerifyHandler(t *testing.T) {
 		{
 			name: "異常系: oidフィールドが空",
 			fields: fields{
-				usecase: func(ctrl *gomock.Controller) handler.VerifyUseCase {
-					mock := mock_handler.NewMockVerifyUseCase(ctrl)
+				usecase: func(ctrl *gomock.Controller) usecase.VerifyUseCaseInterface {
+					mock := mock_usecase.NewMockVerifyUseCaseInterface(ctrl)
 					return mock
 				},
 			},
@@ -150,8 +150,8 @@ func TestVerifyHandler(t *testing.T) {
 		{
 			name: "異常系: sizeフィールドが負の値",
 			fields: fields{
-				usecase: func(ctrl *gomock.Controller) handler.VerifyUseCase {
-					mock := mock_handler.NewMockVerifyUseCase(ctrl)
+				usecase: func(ctrl *gomock.Controller) usecase.VerifyUseCaseInterface {
+					mock := mock_usecase.NewMockVerifyUseCaseInterface(ctrl)
 					return mock
 				},
 			},
@@ -173,8 +173,8 @@ func TestVerifyHandler(t *testing.T) {
 		{
 			name: "異常系: OID形式が不正",
 			fields: fields{
-				usecase: func(ctrl *gomock.Controller) handler.VerifyUseCase {
-					mock := mock_handler.NewMockVerifyUseCase(ctrl)
+				usecase: func(ctrl *gomock.Controller) usecase.VerifyUseCaseInterface {
+					mock := mock_usecase.NewMockVerifyUseCaseInterface(ctrl)
 					return mock
 				},
 			},
@@ -196,8 +196,8 @@ func TestVerifyHandler(t *testing.T) {
 		{
 			name: "異常系: オブジェクトが見つからない",
 			fields: fields{
-				usecase: func(ctrl *gomock.Controller) handler.VerifyUseCase {
-					mock := mock_handler.NewMockVerifyUseCase(ctrl)
+				usecase: func(ctrl *gomock.Controller) usecase.VerifyUseCaseInterface {
+					mock := mock_usecase.NewMockVerifyUseCaseInterface(ctrl)
 					mock.EXPECT().VerifyUpload(gomock.Any(), "abc123def4567890abc123def4567890abc123def4567890abc123def4567890", int64(1024)).Return(usecase.ErrObjectNotFound).Times(1)
 					return mock
 				},
@@ -220,8 +220,8 @@ func TestVerifyHandler(t *testing.T) {
 		{
 			name: "異常系: サイズが一致しない",
 			fields: fields{
-				usecase: func(ctrl *gomock.Controller) handler.VerifyUseCase {
-					mock := mock_handler.NewMockVerifyUseCase(ctrl)
+				usecase: func(ctrl *gomock.Controller) usecase.VerifyUseCaseInterface {
+					mock := mock_usecase.NewMockVerifyUseCaseInterface(ctrl)
 					mock.EXPECT().VerifyUpload(gomock.Any(), "abc123def4567890abc123def4567890abc123def4567890abc123def4567890", int64(1024)).Return(usecase.ErrSizeMismatch).Times(1)
 					return mock
 				},
@@ -244,8 +244,8 @@ func TestVerifyHandler(t *testing.T) {
 		{
 			name: "異常系: サーバー内部エラー",
 			fields: fields{
-				usecase: func(ctrl *gomock.Controller) handler.VerifyUseCase {
-					mock := mock_handler.NewMockVerifyUseCase(ctrl)
+				usecase: func(ctrl *gomock.Controller) usecase.VerifyUseCaseInterface {
+					mock := mock_usecase.NewMockVerifyUseCaseInterface(ctrl)
 					mock.EXPECT().VerifyUpload(gomock.Any(), "abc123def4567890abc123def4567890abc123def4567890abc123def4567890", int64(1024)).Return(errors.New("internal error")).Times(1)
 					return mock
 				},

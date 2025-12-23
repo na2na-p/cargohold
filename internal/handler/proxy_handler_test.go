@@ -16,15 +16,16 @@ import (
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
+	"github.com/na2na-p/cargohold/internal/infrastructure/s3"
 	"github.com/na2na-p/cargohold/internal/usecase"
-	mock_handler "github.com/na2na-p/cargohold/tests/handler"
+	mock_usecase "github.com/na2na-p/cargohold/tests/usecase"
 	"go.uber.org/mock/gomock"
 )
 
 func TestProxyHandler_HandleUpload(t *testing.T) {
 	type fields struct {
-		setupUploadMock   func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase
-		setupDownloadMock func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase
+		setupUploadMock   func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase
+		setupDownloadMock func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase
 		proxyTimeout      time.Duration
 	}
 	type args struct {
@@ -46,13 +47,13 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 		{
 			name: "正常系: アップロードが成功する",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					m := mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					m := mock_usecase.NewMockProxyUploadUseCase(ctrl)
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					return m
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					return mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -73,11 +74,11 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 		{
 			name: "異常系: OIDが不正な場合、422エラーが返る",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					return mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					return mock_usecase.NewMockProxyUploadUseCase(ctrl)
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					return mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -98,13 +99,13 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 		{
 			name: "異常系: オブジェクトが存在しない場合、404エラーが返る",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					m := mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					m := mock_usecase.NewMockProxyUploadUseCase(ctrl)
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(usecase.ErrObjectNotFound)
 					return m
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					return mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -125,13 +126,13 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 		{
 			name: "異常系: タイムアウトした場合、504エラーが返る",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					m := mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					m := mock_usecase.NewMockProxyUploadUseCase(ctrl)
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(context.DeadlineExceeded)
 					return m
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					return mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -152,13 +153,13 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 		{
 			name: "異常系: ストレージエラーの場合、502エラーが返る",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					m := mock_handler.NewMockProxyUploadUseCase(ctrl)
-					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed to put object: connection refused"))
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					m := mock_usecase.NewMockProxyUploadUseCase(ctrl)
+					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(s3.NewStorageError(s3.OperationPut, errors.New("connection refused")))
 					return m
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					return mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -179,13 +180,13 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 		{
 			name: "異常系: 未知のエラーの場合、500エラーが返る",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					m := mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					m := mock_usecase.NewMockProxyUploadUseCase(ctrl)
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("unknown error"))
 					return m
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					return mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -206,13 +207,13 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 		{
 			name: "異常系: アクセス拒否の場合、403エラーが返る",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					m := mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					m := mock_usecase.NewMockProxyUploadUseCase(ctrl)
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(usecase.ErrAccessDenied)
 					return m
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					return mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -264,8 +265,8 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 
 func TestProxyHandler_HandleDownload(t *testing.T) {
 	type fields struct {
-		setupUploadMock   func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase
-		setupDownloadMock func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase
+		setupUploadMock   func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase
+		setupDownloadMock func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase
 		proxyTimeout      time.Duration
 	}
 	type args struct {
@@ -287,11 +288,11 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 		{
 			name: "正常系: ダウンロードが成功する",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					return mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					return mock_usecase.NewMockProxyUploadUseCase(ctrl)
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					m := mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					m := mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 					content := "test file content"
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						io.NopCloser(strings.NewReader(content)),
@@ -319,11 +320,11 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 		{
 			name: "異常系: OIDが不正な場合、422エラーが返る",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					return mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					return mock_usecase.NewMockProxyUploadUseCase(ctrl)
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					return mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -342,11 +343,11 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 		{
 			name: "異常系: オブジェクトが存在しない場合、404エラーが返る",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					return mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					return mock_usecase.NewMockProxyUploadUseCase(ctrl)
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					m := mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					m := mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), usecase.ErrObjectNotFound)
 					return m
 				},
@@ -367,11 +368,11 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 		{
 			name: "異常系: オブジェクトがまだアップロードされていない場合、404エラーが返る",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					return mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					return mock_usecase.NewMockProxyUploadUseCase(ctrl)
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					m := mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					m := mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), usecase.ErrNotUploaded)
 					return m
 				},
@@ -392,11 +393,11 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 		{
 			name: "異常系: タイムアウトした場合、504エラーが返る",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					return mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					return mock_usecase.NewMockProxyUploadUseCase(ctrl)
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					m := mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					m := mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), context.DeadlineExceeded)
 					return m
 				},
@@ -417,12 +418,12 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 		{
 			name: "異常系: ストレージエラーの場合、502エラーが返る",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					return mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					return mock_usecase.NewMockProxyUploadUseCase(ctrl)
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					m := mock_handler.NewMockProxyDownloadUseCase(ctrl)
-					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), errors.New("failed to get object: connection refused"))
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					m := mock_usecase.NewMockProxyDownloadUseCase(ctrl)
+					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), s3.NewStorageError(s3.OperationGet, errors.New("connection refused")))
 					return m
 				},
 				proxyTimeout: 10 * time.Minute,
@@ -442,11 +443,11 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 		{
 			name: "異常系: 未知のエラーの場合、500エラーが返る",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					return mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					return mock_usecase.NewMockProxyUploadUseCase(ctrl)
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					m := mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					m := mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), errors.New("unknown error"))
 					return m
 				},
@@ -467,11 +468,11 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 		{
 			name: "異常系: アクセス拒否の場合、403エラーが返る",
 			fields: fields{
-				setupUploadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyUploadUseCase {
-					return mock_handler.NewMockProxyUploadUseCase(ctrl)
+				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
+					return mock_usecase.NewMockProxyUploadUseCase(ctrl)
 				},
-				setupDownloadMock: func(ctrl *gomock.Controller) *mock_handler.MockProxyDownloadUseCase {
-					m := mock_handler.NewMockProxyDownloadUseCase(ctrl)
+				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
+					m := mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), usecase.ErrAccessDenied)
 					return m
 				},
@@ -538,8 +539,8 @@ func TestNewProxyHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockUploadUC := mock_handler.NewMockProxyUploadUseCase(ctrl)
-	mockDownloadUC := mock_handler.NewMockProxyDownloadUseCase(ctrl)
+	mockUploadUC := mock_usecase.NewMockProxyUploadUseCase(ctrl)
+	mockDownloadUC := mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 	timeout := 5 * time.Minute
 
 	h := handler.NewProxyHandler(mockUploadUC, mockDownloadUC, timeout)
