@@ -9,6 +9,12 @@ import (
 	"github.com/na2na-p/cargohold/internal/domain"
 )
 
+//go:generate mockgen -source=$GOFILE -destination=../../tests/usecase/mock_verify_usecase.go -package=usecase
+
+type VerifyUseCaseInterface interface {
+	VerifyUpload(ctx context.Context, oid string, size int64) error
+}
+
 type VerifyUseCase struct {
 	repo            domain.LFSObjectRepository
 	cacheKeyManager CacheKeyManager

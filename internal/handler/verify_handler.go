@@ -1,8 +1,6 @@
-//go:generate mockgen -source=$GOFILE -destination=../../tests/handler/mock_verify_handler.go -package=handler
 package handler
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -11,15 +9,11 @@ import (
 	"github.com/na2na-p/cargohold/internal/usecase"
 )
 
-type VerifyUseCase interface {
-	VerifyUpload(ctx context.Context, oid string, size int64) error
-}
-
 type VerifyResponse struct {
 	Message string `json:"message"`
 }
 
-func VerifyHandler(uc VerifyUseCase) echo.HandlerFunc {
+func VerifyHandler(uc usecase.VerifyUseCaseInterface) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
 

@@ -61,11 +61,13 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.postgres.existingSecret | default (include "cargohold.fullname" .) }}
                   key: {{ .Values.postgres.existingSecretKey | default "database-password" }}
+            {{- if .Values.redis.auth.enabled }}
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.redis.existingSecret | default (include "cargohold.fullname" .) }}
                   key: {{ .Values.redis.existingSecretKey | default "redis-password" }}
+            {{- end }}
             - name: S3_ACCESSKEYID
               valueFrom:
                 secretKeyRef:
@@ -76,6 +78,18 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.s3.existingSecret | default (include "cargohold.fullname" .) }}
                   key: {{ .Values.s3.existingSecretKeys.secretAccessKey | default "s3-secret-access-key" }}
+            {{- if .Values.cargohold.oauth.github.enabled }}
+            - name: GITHUB_OAUTH_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.cargohold.oauth.github.existingSecret | default (include "cargohold.fullname" .) }}
+                  key: {{ .Values.cargohold.oauth.github.existingSecretKeys.clientId | default "github-oauth-client-id" }}
+            - name: GITHUB_OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.cargohold.oauth.github.existingSecret | default (include "cargohold.fullname" .) }}
+                  key: {{ .Values.cargohold.oauth.github.existingSecretKeys.clientSecret | default "github-oauth-client-secret" }}
+            {{- end }}
             {{- with .Values.extraEnv }}
             {{ toYaml . | nindent 12 }}
             {{- end }}

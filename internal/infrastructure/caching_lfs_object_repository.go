@@ -5,21 +5,20 @@ import (
 	"time"
 
 	"github.com/na2na-p/cargohold/internal/domain"
-	"github.com/na2na-p/cargohold/internal/usecase"
 )
 
 type CachingLFSObjectRepository struct {
 	repo         domain.LFSObjectRepository
-	cacheClient  usecase.CacheClient
-	keyGenerator usecase.CacheKeyGenerator
-	cacheConfig  usecase.CacheConfig
+	cacheClient  domain.CacheClient
+	keyGenerator domain.CacheKeyGenerator
+	cacheConfig  domain.CacheConfig
 }
 
 func NewCachingLFSObjectRepository(
 	repo domain.LFSObjectRepository,
-	cacheClient usecase.CacheClient,
-	keyGenerator usecase.CacheKeyGenerator,
-	cacheConfig usecase.CacheConfig,
+	cacheClient domain.CacheClient,
+	keyGenerator domain.CacheKeyGenerator,
+	cacheConfig domain.CacheConfig,
 ) *CachingLFSObjectRepository {
 	return &CachingLFSObjectRepository{
 		repo:         repo,

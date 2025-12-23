@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/na2na-p/cargohold/internal/domain"
@@ -17,13 +16,13 @@ import (
 func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 	testOID := "1234567890123456789012345678901234567890123456789012345678901234"
 	testRepo, _ := domain.NewRepositoryIdentifier("owner/repo")
-	otherRepo, _ := domain.NewRepositoryIdentifier("other/repo")
 
 	type fields struct {
 		repo                func(ctrl *gomock.Controller) domain.LFSObjectRepository
 		actionURLGenerator  func(ctrl *gomock.Controller) usecase.ActionURLGenerator
 		policyRepo          func(ctrl *gomock.Controller) domain.AccessPolicyRepository
 		storageKeyGenerator func(ctrl *gomock.Controller) usecase.StorageKeyGenerator
+		accessAuthService   func(ctrl *gomock.Controller) domain.AccessAuthorizationService
 	}
 	type args struct {
 		ctx     context.Context
@@ -59,15 +58,15 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 					return mock
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
-					mock := mock_domain.NewMockAccessPolicyRepository(ctrl)
-					objOID, _ := domain.NewOID(testOID)
-					policyID, _ := domain.NewAccessPolicyID(1)
-					policy := domain.NewAccessPolicy(policyID, objOID, testRepo, time.Now())
-					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(policy, nil)
-					return mock
+					return mock_domain.NewMockAccessPolicyRepository(ctrl)
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					return mock_usecase.NewMockStorageKeyGenerator(ctrl)
+				},
+				accessAuthService: func(ctrl *gomock.Controller) domain.AccessAuthorizationService {
+					mock := mock_domain.NewMockAccessAuthorizationService(ctrl)
+					mock.EXPECT().Authorize(gomock.Any(), domain.OperationDownload, gomock.Any(), gomock.Any()).Return(domain.AuthorizationResult{Allowed: true, IsNewObject: false}, nil)
+					return mock
 				},
 			},
 			args: args{
@@ -105,15 +104,15 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
-					mock := mock_domain.NewMockAccessPolicyRepository(ctrl)
-					objOID, _ := domain.NewOID(testOID)
-					policyID, _ := domain.NewAccessPolicyID(1)
-					policy := domain.NewAccessPolicy(policyID, objOID, otherRepo, time.Now())
-					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(policy, nil)
-					return mock
+					return mock_domain.NewMockAccessPolicyRepository(ctrl)
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					return mock_usecase.NewMockStorageKeyGenerator(ctrl)
+				},
+				accessAuthService: func(ctrl *gomock.Controller) domain.AccessAuthorizationService {
+					mock := mock_domain.NewMockAccessAuthorizationService(ctrl)
+					mock.EXPECT().Authorize(gomock.Any(), domain.OperationDownload, gomock.Any(), gomock.Any()).Return(domain.AuthorizationResult{Allowed: false}, domain.ErrAuthorizationDenied)
+					return mock
 				},
 			},
 			args: args{
@@ -143,12 +142,15 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
-					mock := mock_domain.NewMockAccessPolicyRepository(ctrl)
-					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(nil, nil)
-					return mock
+					return mock_domain.NewMockAccessPolicyRepository(ctrl)
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					return mock_usecase.NewMockStorageKeyGenerator(ctrl)
+				},
+				accessAuthService: func(ctrl *gomock.Controller) domain.AccessAuthorizationService {
+					mock := mock_domain.NewMockAccessAuthorizationService(ctrl)
+					mock.EXPECT().Authorize(gomock.Any(), domain.OperationDownload, gomock.Any(), gomock.Any()).Return(domain.AuthorizationResult{Allowed: false}, domain.ErrAuthorizationDenied)
+					return mock
 				},
 			},
 			args: args{
@@ -184,13 +186,17 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
 					mock := mock_domain.NewMockAccessPolicyRepository(ctrl)
-					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(nil, nil)
 					mock.EXPECT().Save(gomock.Any(), gomock.Any()).Return(nil)
 					return mock
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					mock := mock_usecase.NewMockStorageKeyGenerator(ctrl)
 					mock.EXPECT().GenerateStorageKey(gomock.Any(), gomock.Any()).Return("objects/sha256/12/34/"+testOID, nil)
+					return mock
+				},
+				accessAuthService: func(ctrl *gomock.Controller) domain.AccessAuthorizationService {
+					mock := mock_domain.NewMockAccessAuthorizationService(ctrl)
+					mock.EXPECT().Authorize(gomock.Any(), domain.OperationUpload, gomock.Any(), gomock.Any()).Return(domain.AuthorizationResult{Allowed: true, IsNewObject: true}, nil)
 					return mock
 				},
 			},
@@ -237,15 +243,15 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
-					mock := mock_domain.NewMockAccessPolicyRepository(ctrl)
-					objOID, _ := domain.NewOID(testOID)
-					policyID, _ := domain.NewAccessPolicyID(1)
-					policy := domain.NewAccessPolicy(policyID, objOID, testRepo, time.Now())
-					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(policy, nil)
-					return mock
+					return mock_domain.NewMockAccessPolicyRepository(ctrl)
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					return mock_usecase.NewMockStorageKeyGenerator(ctrl)
+				},
+				accessAuthService: func(ctrl *gomock.Controller) domain.AccessAuthorizationService {
+					mock := mock_domain.NewMockAccessAuthorizationService(ctrl)
+					mock.EXPECT().Authorize(gomock.Any(), domain.OperationUpload, gomock.Any(), gomock.Any()).Return(domain.AuthorizationResult{Allowed: true, IsNewObject: false}, nil)
+					return mock
 				},
 			},
 			args: args{
@@ -279,15 +285,15 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 					return mock_usecase.NewMockActionURLGenerator(ctrl)
 				},
 				policyRepo: func(ctrl *gomock.Controller) domain.AccessPolicyRepository {
-					mock := mock_domain.NewMockAccessPolicyRepository(ctrl)
-					objOID, _ := domain.NewOID(testOID)
-					policyID, _ := domain.NewAccessPolicyID(1)
-					policy := domain.NewAccessPolicy(policyID, objOID, otherRepo, time.Now())
-					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(policy, nil)
-					return mock
+					return mock_domain.NewMockAccessPolicyRepository(ctrl)
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					return mock_usecase.NewMockStorageKeyGenerator(ctrl)
+				},
+				accessAuthService: func(ctrl *gomock.Controller) domain.AccessAuthorizationService {
+					mock := mock_domain.NewMockAccessAuthorizationService(ctrl)
+					mock.EXPECT().Authorize(gomock.Any(), domain.OperationUpload, gomock.Any(), gomock.Any()).Return(domain.AuthorizationResult{Allowed: false}, domain.ErrAuthorizationDenied)
+					return mock
 				},
 			},
 			args: args{
@@ -322,6 +328,11 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					return mock_usecase.NewMockStorageKeyGenerator(ctrl)
 				},
+				accessAuthService: func(ctrl *gomock.Controller) domain.AccessAuthorizationService {
+					mock := mock_domain.NewMockAccessAuthorizationService(ctrl)
+					mock.EXPECT().Authorize(gomock.Any(), domain.OperationDownload, gomock.Any(), gomock.Any()).Return(domain.AuthorizationResult{Allowed: false}, domain.ErrInvalidRepositoryIdentifier)
+					return mock
+				},
 			},
 			args: args{
 				ctx:     context.Background(),
@@ -354,6 +365,9 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					return mock_usecase.NewMockStorageKeyGenerator(ctrl)
+				},
+				accessAuthService: func(ctrl *gomock.Controller) domain.AccessAuthorizationService {
+					return mock_domain.NewMockAccessAuthorizationService(ctrl)
 				},
 			},
 			args: args{
@@ -388,6 +402,9 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					return mock_usecase.NewMockStorageKeyGenerator(ctrl)
 				},
+				accessAuthService: func(ctrl *gomock.Controller) domain.AccessAuthorizationService {
+					return mock_domain.NewMockAccessAuthorizationService(ctrl)
+				},
 			},
 			args: args{
 				ctx:     context.Background(),
@@ -420,6 +437,9 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				},
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					return mock_usecase.NewMockStorageKeyGenerator(ctrl)
+				},
+				accessAuthService: func(ctrl *gomock.Controller) domain.AccessAuthorizationService {
+					return mock_domain.NewMockAccessAuthorizationService(ctrl)
 				},
 			},
 			args: args{
@@ -454,6 +474,9 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				storageKeyGenerator: func(ctrl *gomock.Controller) usecase.StorageKeyGenerator {
 					return mock_usecase.NewMockStorageKeyGenerator(ctrl)
 				},
+				accessAuthService: func(ctrl *gomock.Controller) domain.AccessAuthorizationService {
+					return mock_domain.NewMockAccessAuthorizationService(ctrl)
+				},
 			},
 			args: args{
 				ctx:     context.Background(),
@@ -484,6 +507,7 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				tt.fields.actionURLGenerator(ctrl),
 				tt.fields.policyRepo(ctrl),
 				tt.fields.storageKeyGenerator(ctrl),
+				tt.fields.accessAuthService(ctrl),
 			)
 
 			got, err := uc.HandleBatchRequest(tt.args.ctx, tt.args.baseURL, tt.args.owner, tt.args.repo, tt.args.req)

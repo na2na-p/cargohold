@@ -14,6 +14,11 @@ const (
 	PresignedURLTTL      = 15 * time.Minute
 )
 
+
+type BatchUseCaseInterface interface {
+	HandleBatchRequest(ctx context.Context, baseURL, owner, repo string, req BatchRequest) (BatchResponse, error)
+}
+
 type BatchUseCase struct {
 	batchDownloadUseCase BatchDownloadUseCase
 	batchUploadUseCase   BatchUploadUseCase
@@ -24,13 +29,13 @@ func NewBatchUseCase(
 	actionURLGenerator ActionURLGenerator,
 	policyRepo domain.AccessPolicyRepository,
 	storageKeyGenerator StorageKeyGenerator,
+	accessAuthService domain.AccessAuthorizationService,
 ) *BatchUseCase {
 	downloadUseCase := NewDownloadUseCase(repo, actionURLGenerator)
 	uploadUseCase := NewUploadUseCase(repo, actionURLGenerator, storageKeyGenerator)
-	authService := domain.NewAccessAuthorizationService(policyRepo)
 
-	batchDownloadUseCase := NewBatchDownloadUseCase(downloadUseCase, authService)
-	batchUploadUseCase := NewBatchUploadUseCase(uploadUseCase, authService, policyRepo)
+	batchDownloadUseCase := NewBatchDownloadUseCase(downloadUseCase, accessAuthService)
+	batchUploadUseCase := NewBatchUploadUseCase(uploadUseCase, accessAuthService, policyRepo)
 
 	return &BatchUseCase{
 		batchDownloadUseCase: batchDownloadUseCase,

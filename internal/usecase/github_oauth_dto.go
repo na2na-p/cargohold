@@ -13,9 +13,3 @@ type GitHubUserResult struct {
 	Login string
 	Name  string
 }
-
-// OAuthStateData はOAuth認証フローで使用するstate関連データ
-type OAuthStateData struct {
-	Repository  string `json:"repository"`
-	RedirectURI string `json:"redirect_uri"`
-}

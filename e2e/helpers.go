@@ -400,3 +400,8 @@ func CalculateFileHash(filePath string) (string, int64, error) {
 	hashString := hex.EncodeToString(hash.Sum(nil))
 	return hashString, size, nil
 }
+
+// GetOAuthLoginEndpoint はGitHub OAuth認証のログインエンドポイントURLを返します
+func GetOAuthLoginEndpoint(repository string) string {
+	return fmt.Sprintf("%s/auth/github/login?repository=%s", GetBaseEndpoint(), repository)
+}

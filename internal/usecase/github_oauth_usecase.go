@@ -13,14 +13,14 @@ type GitHubOAuthUseCase struct {
 	oauthProvider       GitHubOAuthProviderInterface
 	sessionStore        SessionStoreInterface
 	stateStore          OAuthStateStoreInterface
-	allowedRedirectURIs []string
+	allowedRedirectURIs *domain.AllowedRedirectURIs
 }
 
 func NewGitHubOAuthUseCase(
 	oauthProvider GitHubOAuthProviderInterface,
 	sessionStore SessionStoreInterface,
 	stateStore OAuthStateStoreInterface,
-	allowedRedirectURIs []string,
+	allowedRedirectURIs *domain.AllowedRedirectURIs,
 ) (*GitHubOAuthUseCase, error) {
 	if oauthProvider == nil {
 		return nil, fmt.Errorf("oauthProvider is nil")
@@ -31,8 +31,8 @@ func NewGitHubOAuthUseCase(
 	if stateStore == nil {
 		return nil, fmt.Errorf("stateStore is nil")
 	}
-	if len(allowedRedirectURIs) == 0 {
-		return nil, fmt.Errorf("allowedRedirectURIs is empty")
+	if allowedRedirectURIs == nil {
+		return nil, fmt.Errorf("allowedRedirectURIs is nil")
 	}
 	return &GitHubOAuthUseCase{
 		oauthProvider:       oauthProvider,
@@ -57,28 +57,19 @@ func (u *GitHubOAuthUseCase) StartAuthentication(
 		return "", fmt.Errorf("%w: redirectURI is empty", ErrInvalidRedirectURI)
 	}
 
-	isAllowed := false
-	for _, allowed := range u.allowedRedirectURIs {
-		if redirectURI == allowed {
-			isAllowed = true
-			break
-		}
-	}
-	if !isAllowed {
+	if !u.allowedRedirectURIs.Contains(redirectURI) {
 		return "", fmt.Errorf("%w: redirectURI not in allowed list", ErrInvalidRedirectURI)
 	}
 
 	state := uuid.New().String()
 
-	stateData := &OAuthStateData{
-		Repository:  repository.FullName(),
-		RedirectURI: redirectURI,
-	}
+	stateData := domain.NewOAuthState(repository.FullName(), redirectURI)
 
 	if err := u.stateStore.SaveState(ctx, state, stateData, OIDCStateTTL); err != nil {
 		return "", fmt.Errorf("%w: %v", ErrStateSaveFailed, err)
 	}
 
+	u.oauthProvider.SetRedirectURI(redirectURI)
 	authURL := u.oauthProvider.GetAuthorizationURL(state, defaultScopes)
 
 	return authURL, nil
@@ -102,11 +93,12 @@ func (u *GitHubOAuthUseCase) HandleCallback(
 		return "", fmt.Errorf("%w: %v", ErrInvalidState, err)
 	}
 
-	repository, err := domain.NewRepositoryIdentifier(stateData.Repository)
+	repository, err := domain.NewRepositoryIdentifier(stateData.Repository())
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrInvalidRepository, err)
 	}
 
+	u.oauthProvider.SetRedirectURI(stateData.RedirectURI())
 	token, err := u.oauthProvider.ExchangeCode(ctx, code)
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrCodeExchangeFailed, err)

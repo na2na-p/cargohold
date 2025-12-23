@@ -21,6 +21,7 @@ type Config struct {
 	Redis    RedisConfig
 	S3       S3Config
 	OIDC     OIDCConfig
+	OAuth    OAuthConfig
 }
 
 // DatabaseConfig はデータベース接続の設定を保持します
@@ -62,6 +63,20 @@ type GitHubOIDCConfig struct {
 	JWKSURL  string
 }
 
+// OAuthConfig はOAuth認証の設定を保持します
+type OAuthConfig struct {
+	GitHub GitHubOAuthConfig `yaml:"github"`
+}
+
+// GitHubOAuthConfig はGitHub OAuth設定を保持します
+type GitHubOAuthConfig struct {
+	Enabled             bool     `yaml:"enabled"`
+	ClientID            string   `yaml:"clientId" env:"GITHUB_OAUTH_CLIENT_ID"`
+	ClientSecret        string   `yaml:"clientSecret" env:"GITHUB_OAUTH_CLIENT_SECRET"`
+	AllowedHosts        []string `yaml:"allowedHosts"`
+	AllowedRedirectURIs []string `yaml:"allowedRedirectUris"`
+}
+
 // Load は設定ファイルを読み込み、Config構造体を返します
 func Load() (*Config, error) {
 	viper.SetConfigName("config")
@@ -73,6 +88,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("server.trustproxy", false)
 	viper.SetDefault("server.proxytimeout", 10*time.Minute)
 	viper.SetDefault("oidc.github.enabled", true)
+	viper.SetDefault("oauth.github.enabled", false)
 	viper.SetDefault("database.sslmode", "require")
 
 	if err := viper.ReadInConfig(); err != nil {
@@ -100,4 +116,9 @@ func (c RedisConfig) String() string {
 func (c S3Config) String() string {
 	return fmt.Sprintf("S3Config{Endpoint: %s, AccessKeyID: %s, SecretAccessKey: ***, BucketName: %s, Region: %s}",
 		c.Endpoint, c.AccessKeyID, c.BucketName, c.Region)
+}
+
+func (c GitHubOAuthConfig) String() string {
+	return fmt.Sprintf("GitHubOAuthConfig{Enabled: %t, ClientID: %s, ClientSecret: ***, AllowedHosts: %v, AllowedRedirectURIs: %v}",
+		c.Enabled, c.ClientID, c.AllowedHosts, c.AllowedRedirectURIs)
 }

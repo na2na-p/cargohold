@@ -3,34 +3,23 @@ package handler
 import (
 	"context"
 	"errors"
-	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/na2na-p/cargohold/internal/domain"
+	"github.com/na2na-p/cargohold/internal/infrastructure/s3"
 	"github.com/na2na-p/cargohold/internal/usecase"
 )
 
-//go:generate mockgen -source=$GOFILE -destination=../../tests/handler/mock_proxy_handler.go -package=handler
-
-type ProxyUploadUseCase interface {
-	Execute(ctx context.Context, owner, repo string, oid domain.OID, body io.Reader) error
-}
-
-type ProxyDownloadUseCase interface {
-	Execute(ctx context.Context, owner, repo string, oid domain.OID) (io.ReadCloser, int64, error)
-}
-
 type ProxyHandler struct {
-	proxyUploadUseCase   ProxyUploadUseCase
-	proxyDownloadUseCase ProxyDownloadUseCase
+	proxyUploadUseCase   usecase.ProxyUploadUseCase
+	proxyDownloadUseCase usecase.ProxyDownloadUseCase
 	proxyTimeout         time.Duration
 }
 
-func NewProxyHandler(uploadUC ProxyUploadUseCase, downloadUC ProxyDownloadUseCase, proxyTimeout time.Duration) *ProxyHandler {
+func NewProxyHandler(uploadUC usecase.ProxyUploadUseCase, downloadUC usecase.ProxyDownloadUseCase, proxyTimeout time.Duration) *ProxyHandler {
 	return &ProxyHandler{
 		proxyUploadUseCase:   uploadUC,
 		proxyDownloadUseCase: downloadUC,
@@ -106,8 +95,5 @@ func (h *ProxyHandler) handleProxyError(c echo.Context, err error) error {
 }
 
 func (h *ProxyHandler) isStorageError(err error) bool {
-	errMsg := err.Error()
-	return strings.Contains(errMsg, "failed to put object") ||
-		strings.Contains(errMsg, "failed to get object") ||
-		strings.Contains(errMsg, "failed to head object")
+	return s3.IsStorageError(err)
 }

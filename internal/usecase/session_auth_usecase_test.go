@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/usecase"
-	mock_usecase "github.com/na2na-p/cargohold/tests/usecase"
+	mock_domain "github.com/na2na-p/cargohold/tests/domain"
 	"go.uber.org/mock/gomock"
 )
 
@@ -30,8 +30,8 @@ func TestSessionAuthUseCase_Authenticate(t *testing.T) {
 		sessionID string
 	}
 	type mockFields struct {
-		redisClient  *mock_usecase.MockCacheClient
-		keyGenerator *mock_usecase.MockCacheKeyGenerator
+		redisClient  *mock_domain.MockCacheClient
+		keyGenerator *mock_domain.MockCacheKeyGenerator
 	}
 	tests := []struct {
 		name            string
@@ -44,8 +44,8 @@ func TestSessionAuthUseCase_Authenticate(t *testing.T) {
 		{
 			name: "正常系: セッションが存在する場合、ユーザー情報を返す",
 			setupMocks: func(ctrl *gomock.Controller) mockFields {
-				redisClient := mock_usecase.NewMockCacheClient(ctrl)
-				keyGenerator := mock_usecase.NewMockCacheKeyGenerator(ctrl)
+				redisClient := mock_domain.NewMockCacheClient(ctrl)
+				keyGenerator := mock_domain.NewMockCacheKeyGenerator(ctrl)
 				keyGenerator.EXPECT().SessionKey("test-session-id").Return("lfs:session:test-session-id")
 				redisClient.EXPECT().GetJSON(gomock.Any(), "lfs:session:test-session-id", gomock.Any()).DoAndReturn(
 					func(ctx context.Context, key string, dest interface{}) error {
@@ -72,8 +72,8 @@ func TestSessionAuthUseCase_Authenticate(t *testing.T) {
 		{
 			name: "正常系: GitHub Actionsセッションが存在する場合、リポジトリ情報を含むユーザー情報を返す",
 			setupMocks: func(ctrl *gomock.Controller) mockFields {
-				redisClient := mock_usecase.NewMockCacheClient(ctrl)
-				keyGenerator := mock_usecase.NewMockCacheKeyGenerator(ctrl)
+				redisClient := mock_domain.NewMockCacheClient(ctrl)
+				keyGenerator := mock_domain.NewMockCacheKeyGenerator(ctrl)
 				keyGenerator.EXPECT().SessionKey("github-session-id").Return("lfs:session:github-session-id")
 				redisClient.EXPECT().GetJSON(gomock.Any(), "lfs:session:github-session-id", gomock.Any()).DoAndReturn(
 					func(ctx context.Context, key string, dest interface{}) error {
@@ -109,8 +109,8 @@ func TestSessionAuthUseCase_Authenticate(t *testing.T) {
 		{
 			name: "正常系: GitHub Actions PRセッションが存在する場合",
 			setupMocks: func(ctrl *gomock.Controller) mockFields {
-				redisClient := mock_usecase.NewMockCacheClient(ctrl)
-				keyGenerator := mock_usecase.NewMockCacheKeyGenerator(ctrl)
+				redisClient := mock_domain.NewMockCacheClient(ctrl)
+				keyGenerator := mock_domain.NewMockCacheKeyGenerator(ctrl)
 				keyGenerator.EXPECT().SessionKey("github-pr-session-id").Return("lfs:session:github-pr-session-id")
 				redisClient.EXPECT().GetJSON(gomock.Any(), "lfs:session:github-pr-session-id", gomock.Any()).DoAndReturn(
 					func(ctx context.Context, key string, dest interface{}) error {
@@ -146,8 +146,8 @@ func TestSessionAuthUseCase_Authenticate(t *testing.T) {
 		{
 			name: "異常系: セッションが存在しない場合、ErrSessionNotFound",
 			setupMocks: func(ctrl *gomock.Controller) mockFields {
-				redisClient := mock_usecase.NewMockCacheClient(ctrl)
-				keyGenerator := mock_usecase.NewMockCacheKeyGenerator(ctrl)
+				redisClient := mock_domain.NewMockCacheClient(ctrl)
+				keyGenerator := mock_domain.NewMockCacheKeyGenerator(ctrl)
 				keyGenerator.EXPECT().SessionKey("invalid-session-id").Return("lfs:session:invalid-session-id")
 				redisClient.EXPECT().GetJSON(gomock.Any(), "lfs:session:invalid-session-id", gomock.Any()).Return(usecase.ErrCacheMiss)
 				return mockFields{redisClient: redisClient, keyGenerator: keyGenerator}
@@ -161,8 +161,8 @@ func TestSessionAuthUseCase_Authenticate(t *testing.T) {
 		{
 			name: "異常系: Redis接続エラーの場合、redis errorとして返す",
 			setupMocks: func(ctrl *gomock.Controller) mockFields {
-				redisClient := mock_usecase.NewMockCacheClient(ctrl)
-				keyGenerator := mock_usecase.NewMockCacheKeyGenerator(ctrl)
+				redisClient := mock_domain.NewMockCacheClient(ctrl)
+				keyGenerator := mock_domain.NewMockCacheKeyGenerator(ctrl)
 				keyGenerator.EXPECT().SessionKey("error-session-id").Return("lfs:session:error-session-id")
 				redisClient.EXPECT().GetJSON(gomock.Any(), "lfs:session:error-session-id", gomock.Any()).Return(errors.New("Redis接続エラー"))
 				return mockFields{redisClient: redisClient, keyGenerator: keyGenerator}
@@ -176,8 +176,8 @@ func TestSessionAuthUseCase_Authenticate(t *testing.T) {
 		{
 			name: "異常系: JSONデシリアライズエラーの場合、ErrInvalidSessionData",
 			setupMocks: func(ctrl *gomock.Controller) mockFields {
-				redisClient := mock_usecase.NewMockCacheClient(ctrl)
-				keyGenerator := mock_usecase.NewMockCacheKeyGenerator(ctrl)
+				redisClient := mock_domain.NewMockCacheClient(ctrl)
+				keyGenerator := mock_domain.NewMockCacheKeyGenerator(ctrl)
 				keyGenerator.EXPECT().SessionKey("json-error-session-id").Return("lfs:session:json-error-session-id")
 				redisClient.EXPECT().GetJSON(gomock.Any(), "lfs:session:json-error-session-id", gomock.Any()).Return(&json.SyntaxError{})
 				return mockFields{redisClient: redisClient, keyGenerator: keyGenerator}
@@ -191,8 +191,8 @@ func TestSessionAuthUseCase_Authenticate(t *testing.T) {
 		{
 			name: "異常系: セッションデータにsubが含まれていない場合、ErrInvalidSessionData",
 			setupMocks: func(ctrl *gomock.Controller) mockFields {
-				redisClient := mock_usecase.NewMockCacheClient(ctrl)
-				keyGenerator := mock_usecase.NewMockCacheKeyGenerator(ctrl)
+				redisClient := mock_domain.NewMockCacheClient(ctrl)
+				keyGenerator := mock_domain.NewMockCacheKeyGenerator(ctrl)
 				keyGenerator.EXPECT().SessionKey("malformed-session-id").Return("lfs:session:malformed-session-id")
 				redisClient.EXPECT().GetJSON(gomock.Any(), "lfs:session:malformed-session-id", gomock.Any()).DoAndReturn(
 					func(ctx context.Context, key string, dest interface{}) error {
@@ -218,8 +218,8 @@ func TestSessionAuthUseCase_Authenticate(t *testing.T) {
 		{
 			name: "異常系: セッションデータが空の場合、ErrInvalidSessionData",
 			setupMocks: func(ctrl *gomock.Controller) mockFields {
-				redisClient := mock_usecase.NewMockCacheClient(ctrl)
-				keyGenerator := mock_usecase.NewMockCacheKeyGenerator(ctrl)
+				redisClient := mock_domain.NewMockCacheClient(ctrl)
+				keyGenerator := mock_domain.NewMockCacheKeyGenerator(ctrl)
 				keyGenerator.EXPECT().SessionKey("empty-session-id").Return("lfs:session:empty-session-id")
 				redisClient.EXPECT().GetJSON(gomock.Any(), "lfs:session:empty-session-id", gomock.Any()).DoAndReturn(
 					func(ctx context.Context, key string, dest interface{}) error {

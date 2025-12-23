@@ -32,18 +32,17 @@ func NewGitHubTokenExchanger(clientID, clientSecret, redirectURI string) (*gitHu
 		return nil, fmt.Errorf("clientSecret is required")
 	}
 
-	redirectURI = strings.TrimSpace(redirectURI)
-	if redirectURI == "" {
-		return nil, fmt.Errorf("redirectURI is required")
-	}
-
 	return &gitHubTokenExchanger{
 		clientID:      clientID,
 		clientSecret:  clientSecret,
-		redirectURI:   redirectURI,
+		redirectURI:   strings.TrimSpace(redirectURI),
 		httpClient:    &http.Client{Timeout: 10 * time.Second},
 		tokenEndpoint: GitHubOAuthTokenURL,
 	}, nil
+}
+
+func (e *gitHubTokenExchanger) SetRedirectURI(redirectURI string) {
+	e.redirectURI = strings.TrimSpace(redirectURI)
 }
 
 func (e *gitHubTokenExchanger) SetTokenEndpoint(endpoint string) {
