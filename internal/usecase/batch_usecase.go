@@ -14,7 +14,6 @@ const (
 	PresignedURLTTL      = 15 * time.Minute
 )
 
-
 type BatchUseCaseInterface interface {
 	HandleBatchRequest(ctx context.Context, baseURL, owner, repo string, req BatchRequest) (BatchResponse, error)
 }

@@ -622,7 +622,6 @@ func TestS3Client_HeadBucket(t *testing.T) {
 	}
 }
 
-
 func TestS3Client_ErrorTypes(t *testing.T) {
 	t.Run("PutObject returns StorageError with OperationPut", func(t *testing.T) {
 		ctx := context.Background()
