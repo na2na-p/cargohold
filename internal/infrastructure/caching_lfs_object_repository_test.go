@@ -10,16 +10,18 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/infrastructure"
+	"github.com/na2na-p/cargohold/internal/usecase"
 	mock_domain "github.com/na2na-p/cargohold/tests/domain"
+	mock_usecase "github.com/na2na-p/cargohold/tests/usecase"
 	"go.uber.org/mock/gomock"
 )
 
 func TestCachingLFSObjectRepository_FindByOID(t *testing.T) {
 	type fields struct {
 		repo         func(ctrl *gomock.Controller) domain.LFSObjectRepository
-		cacheClient  func(ctrl *gomock.Controller) domain.CacheClient
-		keyGenerator func(ctrl *gomock.Controller) domain.CacheKeyGenerator
-		cacheConfig  func(ctrl *gomock.Controller) domain.CacheConfig
+		cacheClient  func(ctrl *gomock.Controller) usecase.CacheClient
+		keyGenerator func(ctrl *gomock.Controller) usecase.CacheKeyGenerator
+		cacheConfig  func(ctrl *gomock.Controller) usecase.CacheConfig
 	}
 	type args struct {
 		ctx context.Context
@@ -38,8 +40,8 @@ func TestCachingLFSObjectRepository_FindByOID(t *testing.T) {
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					return mock_domain.NewMockLFSObjectRepository(ctrl)
 				},
-				cacheClient: func(ctrl *gomock.Controller) domain.CacheClient {
-					mock := mock_domain.NewMockCacheClient(ctrl)
+				cacheClient: func(ctrl *gomock.Controller) usecase.CacheClient {
+					mock := mock_usecase.NewMockCacheClient(ctrl)
 					mock.EXPECT().GetJSON(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 						func(ctx context.Context, key string, dest interface{}) error {
 							cached := map[string]interface{}{
@@ -57,13 +59,13 @@ func TestCachingLFSObjectRepository_FindByOID(t *testing.T) {
 					)
 					return mock
 				},
-				keyGenerator: func(ctrl *gomock.Controller) domain.CacheKeyGenerator {
-					mock := mock_domain.NewMockCacheKeyGenerator(ctrl)
+				keyGenerator: func(ctrl *gomock.Controller) usecase.CacheKeyGenerator {
+					mock := mock_usecase.NewMockCacheKeyGenerator(ctrl)
 					mock.EXPECT().MetadataKey(gomock.Any()).Return("metadata:1234567890123456789012345678901234567890123456789012345678901234")
 					return mock
 				},
-				cacheConfig: func(ctrl *gomock.Controller) domain.CacheConfig {
-					return mock_domain.NewMockCacheConfig(ctrl)
+				cacheConfig: func(ctrl *gomock.Controller) usecase.CacheConfig {
+					return mock_usecase.NewMockCacheConfig(ctrl)
 				},
 			},
 			args: func() args {
@@ -89,19 +91,19 @@ func TestCachingLFSObjectRepository_FindByOID(t *testing.T) {
 					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(obj, nil)
 					return mock
 				},
-				cacheClient: func(ctrl *gomock.Controller) domain.CacheClient {
-					mock := mock_domain.NewMockCacheClient(ctrl)
+				cacheClient: func(ctrl *gomock.Controller) usecase.CacheClient {
+					mock := mock_usecase.NewMockCacheClient(ctrl)
 					mock.EXPECT().GetJSON(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("cache miss"))
 					mock.EXPECT().SetJSON(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					return mock
 				},
-				keyGenerator: func(ctrl *gomock.Controller) domain.CacheKeyGenerator {
-					mock := mock_domain.NewMockCacheKeyGenerator(ctrl)
+				keyGenerator: func(ctrl *gomock.Controller) usecase.CacheKeyGenerator {
+					mock := mock_usecase.NewMockCacheKeyGenerator(ctrl)
 					mock.EXPECT().MetadataKey(gomock.Any()).Return("metadata:1234567890123456789012345678901234567890123456789012345678901234").Times(2)
 					return mock
 				},
-				cacheConfig: func(ctrl *gomock.Controller) domain.CacheConfig {
-					mock := mock_domain.NewMockCacheConfig(ctrl)
+				cacheConfig: func(ctrl *gomock.Controller) usecase.CacheConfig {
+					mock := mock_usecase.NewMockCacheConfig(ctrl)
 					mock.EXPECT().MetadataTTL().Return(time.Hour)
 					return mock
 				},
@@ -124,18 +126,18 @@ func TestCachingLFSObjectRepository_FindByOID(t *testing.T) {
 					mock.EXPECT().FindByOID(gomock.Any(), gomock.Any()).Return(nil, errors.New("not found"))
 					return mock
 				},
-				cacheClient: func(ctrl *gomock.Controller) domain.CacheClient {
-					mock := mock_domain.NewMockCacheClient(ctrl)
+				cacheClient: func(ctrl *gomock.Controller) usecase.CacheClient {
+					mock := mock_usecase.NewMockCacheClient(ctrl)
 					mock.EXPECT().GetJSON(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("cache miss"))
 					return mock
 				},
-				keyGenerator: func(ctrl *gomock.Controller) domain.CacheKeyGenerator {
-					mock := mock_domain.NewMockCacheKeyGenerator(ctrl)
+				keyGenerator: func(ctrl *gomock.Controller) usecase.CacheKeyGenerator {
+					mock := mock_usecase.NewMockCacheKeyGenerator(ctrl)
 					mock.EXPECT().MetadataKey(gomock.Any()).Return("metadata:1234567890123456789012345678901234567890123456789012345678901234")
 					return mock
 				},
-				cacheConfig: func(ctrl *gomock.Controller) domain.CacheConfig {
-					return mock_domain.NewMockCacheConfig(ctrl)
+				cacheConfig: func(ctrl *gomock.Controller) usecase.CacheConfig {
+					return mock_usecase.NewMockCacheConfig(ctrl)
 				},
 			},
 			args: func() args {
@@ -186,9 +188,9 @@ func TestCachingLFSObjectRepository_FindByOID(t *testing.T) {
 func TestCachingLFSObjectRepository_Save(t *testing.T) {
 	type fields struct {
 		repo         func(ctrl *gomock.Controller) domain.LFSObjectRepository
-		cacheClient  func(ctrl *gomock.Controller) domain.CacheClient
-		keyGenerator func(ctrl *gomock.Controller) domain.CacheKeyGenerator
-		cacheConfig  func(ctrl *gomock.Controller) domain.CacheConfig
+		cacheClient  func(ctrl *gomock.Controller) usecase.CacheClient
+		keyGenerator func(ctrl *gomock.Controller) usecase.CacheKeyGenerator
+		cacheConfig  func(ctrl *gomock.Controller) usecase.CacheConfig
 	}
 	type args struct {
 		ctx context.Context
@@ -208,18 +210,18 @@ func TestCachingLFSObjectRepository_Save(t *testing.T) {
 					mock.EXPECT().Save(gomock.Any(), gomock.Any()).Return(nil)
 					return mock
 				},
-				cacheClient: func(ctrl *gomock.Controller) domain.CacheClient {
-					mock := mock_domain.NewMockCacheClient(ctrl)
+				cacheClient: func(ctrl *gomock.Controller) usecase.CacheClient {
+					mock := mock_usecase.NewMockCacheClient(ctrl)
 					mock.EXPECT().SetJSON(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					return mock
 				},
-				keyGenerator: func(ctrl *gomock.Controller) domain.CacheKeyGenerator {
-					mock := mock_domain.NewMockCacheKeyGenerator(ctrl)
+				keyGenerator: func(ctrl *gomock.Controller) usecase.CacheKeyGenerator {
+					mock := mock_usecase.NewMockCacheKeyGenerator(ctrl)
 					mock.EXPECT().MetadataKey(gomock.Any()).Return("metadata:1234567890123456789012345678901234567890123456789012345678901234")
 					return mock
 				},
-				cacheConfig: func(ctrl *gomock.Controller) domain.CacheConfig {
-					mock := mock_domain.NewMockCacheConfig(ctrl)
+				cacheConfig: func(ctrl *gomock.Controller) usecase.CacheConfig {
+					mock := mock_usecase.NewMockCacheConfig(ctrl)
 					mock.EXPECT().MetadataTTL().Return(time.Hour)
 					return mock
 				},
@@ -245,14 +247,14 @@ func TestCachingLFSObjectRepository_Save(t *testing.T) {
 					mock.EXPECT().Save(gomock.Any(), gomock.Any()).Return(errors.New("save failed"))
 					return mock
 				},
-				cacheClient: func(ctrl *gomock.Controller) domain.CacheClient {
-					return mock_domain.NewMockCacheClient(ctrl)
+				cacheClient: func(ctrl *gomock.Controller) usecase.CacheClient {
+					return mock_usecase.NewMockCacheClient(ctrl)
 				},
-				keyGenerator: func(ctrl *gomock.Controller) domain.CacheKeyGenerator {
-					return mock_domain.NewMockCacheKeyGenerator(ctrl)
+				keyGenerator: func(ctrl *gomock.Controller) usecase.CacheKeyGenerator {
+					return mock_usecase.NewMockCacheKeyGenerator(ctrl)
 				},
-				cacheConfig: func(ctrl *gomock.Controller) domain.CacheConfig {
-					return mock_domain.NewMockCacheConfig(ctrl)
+				cacheConfig: func(ctrl *gomock.Controller) usecase.CacheConfig {
+					return mock_usecase.NewMockCacheConfig(ctrl)
 				},
 			},
 			args: func() args {
@@ -300,9 +302,9 @@ func TestCachingLFSObjectRepository_Save(t *testing.T) {
 func TestCachingLFSObjectRepository_Update(t *testing.T) {
 	type fields struct {
 		repo         func(ctrl *gomock.Controller) domain.LFSObjectRepository
-		cacheClient  func(ctrl *gomock.Controller) domain.CacheClient
-		keyGenerator func(ctrl *gomock.Controller) domain.CacheKeyGenerator
-		cacheConfig  func(ctrl *gomock.Controller) domain.CacheConfig
+		cacheClient  func(ctrl *gomock.Controller) usecase.CacheClient
+		keyGenerator func(ctrl *gomock.Controller) usecase.CacheKeyGenerator
+		cacheConfig  func(ctrl *gomock.Controller) usecase.CacheConfig
 	}
 	type args struct {
 		ctx context.Context
@@ -322,18 +324,18 @@ func TestCachingLFSObjectRepository_Update(t *testing.T) {
 					mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 					return mock
 				},
-				cacheClient: func(ctrl *gomock.Controller) domain.CacheClient {
-					mock := mock_domain.NewMockCacheClient(ctrl)
+				cacheClient: func(ctrl *gomock.Controller) usecase.CacheClient {
+					mock := mock_usecase.NewMockCacheClient(ctrl)
 					mock.EXPECT().SetJSON(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					return mock
 				},
-				keyGenerator: func(ctrl *gomock.Controller) domain.CacheKeyGenerator {
-					mock := mock_domain.NewMockCacheKeyGenerator(ctrl)
+				keyGenerator: func(ctrl *gomock.Controller) usecase.CacheKeyGenerator {
+					mock := mock_usecase.NewMockCacheKeyGenerator(ctrl)
 					mock.EXPECT().MetadataKey(gomock.Any()).Return("metadata:1234567890123456789012345678901234567890123456789012345678901234")
 					return mock
 				},
-				cacheConfig: func(ctrl *gomock.Controller) domain.CacheConfig {
-					mock := mock_domain.NewMockCacheConfig(ctrl)
+				cacheConfig: func(ctrl *gomock.Controller) usecase.CacheConfig {
+					mock := mock_usecase.NewMockCacheConfig(ctrl)
 					mock.EXPECT().MetadataTTL().Return(time.Hour)
 					return mock
 				},
@@ -359,14 +361,14 @@ func TestCachingLFSObjectRepository_Update(t *testing.T) {
 					mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(errors.New("update failed"))
 					return mock
 				},
-				cacheClient: func(ctrl *gomock.Controller) domain.CacheClient {
-					return mock_domain.NewMockCacheClient(ctrl)
+				cacheClient: func(ctrl *gomock.Controller) usecase.CacheClient {
+					return mock_usecase.NewMockCacheClient(ctrl)
 				},
-				keyGenerator: func(ctrl *gomock.Controller) domain.CacheKeyGenerator {
-					return mock_domain.NewMockCacheKeyGenerator(ctrl)
+				keyGenerator: func(ctrl *gomock.Controller) usecase.CacheKeyGenerator {
+					return mock_usecase.NewMockCacheKeyGenerator(ctrl)
 				},
-				cacheConfig: func(ctrl *gomock.Controller) domain.CacheConfig {
-					return mock_domain.NewMockCacheConfig(ctrl)
+				cacheConfig: func(ctrl *gomock.Controller) usecase.CacheConfig {
+					return mock_usecase.NewMockCacheConfig(ctrl)
 				},
 			},
 			args: func() args {
@@ -414,9 +416,9 @@ func TestCachingLFSObjectRepository_Update(t *testing.T) {
 func TestCachingLFSObjectRepository_ExistsByOID(t *testing.T) {
 	type fields struct {
 		repo         func(ctrl *gomock.Controller) domain.LFSObjectRepository
-		cacheClient  func(ctrl *gomock.Controller) domain.CacheClient
-		keyGenerator func(ctrl *gomock.Controller) domain.CacheKeyGenerator
-		cacheConfig  func(ctrl *gomock.Controller) domain.CacheConfig
+		cacheClient  func(ctrl *gomock.Controller) usecase.CacheClient
+		keyGenerator func(ctrl *gomock.Controller) usecase.CacheKeyGenerator
+		cacheConfig  func(ctrl *gomock.Controller) usecase.CacheConfig
 	}
 	type args struct {
 		ctx context.Context
@@ -435,18 +437,18 @@ func TestCachingLFSObjectRepository_ExistsByOID(t *testing.T) {
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					return mock_domain.NewMockLFSObjectRepository(ctrl)
 				},
-				cacheClient: func(ctrl *gomock.Controller) domain.CacheClient {
-					mock := mock_domain.NewMockCacheClient(ctrl)
+				cacheClient: func(ctrl *gomock.Controller) usecase.CacheClient {
+					mock := mock_usecase.NewMockCacheClient(ctrl)
 					mock.EXPECT().Exists(gomock.Any(), gomock.Any()).Return(true, nil)
 					return mock
 				},
-				keyGenerator: func(ctrl *gomock.Controller) domain.CacheKeyGenerator {
-					mock := mock_domain.NewMockCacheKeyGenerator(ctrl)
+				keyGenerator: func(ctrl *gomock.Controller) usecase.CacheKeyGenerator {
+					mock := mock_usecase.NewMockCacheKeyGenerator(ctrl)
 					mock.EXPECT().MetadataKey(gomock.Any()).Return("metadata:1234567890123456789012345678901234567890123456789012345678901234")
 					return mock
 				},
-				cacheConfig: func(ctrl *gomock.Controller) domain.CacheConfig {
-					return mock_domain.NewMockCacheConfig(ctrl)
+				cacheConfig: func(ctrl *gomock.Controller) usecase.CacheConfig {
+					return mock_usecase.NewMockCacheConfig(ctrl)
 				},
 			},
 			args: func() args {
@@ -467,18 +469,18 @@ func TestCachingLFSObjectRepository_ExistsByOID(t *testing.T) {
 					mock.EXPECT().ExistsByOID(gomock.Any(), gomock.Any()).Return(true, nil)
 					return mock
 				},
-				cacheClient: func(ctrl *gomock.Controller) domain.CacheClient {
-					mock := mock_domain.NewMockCacheClient(ctrl)
+				cacheClient: func(ctrl *gomock.Controller) usecase.CacheClient {
+					mock := mock_usecase.NewMockCacheClient(ctrl)
 					mock.EXPECT().Exists(gomock.Any(), gomock.Any()).Return(false, nil)
 					return mock
 				},
-				keyGenerator: func(ctrl *gomock.Controller) domain.CacheKeyGenerator {
-					mock := mock_domain.NewMockCacheKeyGenerator(ctrl)
+				keyGenerator: func(ctrl *gomock.Controller) usecase.CacheKeyGenerator {
+					mock := mock_usecase.NewMockCacheKeyGenerator(ctrl)
 					mock.EXPECT().MetadataKey(gomock.Any()).Return("metadata:1234567890123456789012345678901234567890123456789012345678901234")
 					return mock
 				},
-				cacheConfig: func(ctrl *gomock.Controller) domain.CacheConfig {
-					return mock_domain.NewMockCacheConfig(ctrl)
+				cacheConfig: func(ctrl *gomock.Controller) usecase.CacheConfig {
+					return mock_usecase.NewMockCacheConfig(ctrl)
 				},
 			},
 			args: func() args {
@@ -499,18 +501,18 @@ func TestCachingLFSObjectRepository_ExistsByOID(t *testing.T) {
 					mock.EXPECT().ExistsByOID(gomock.Any(), gomock.Any()).Return(false, nil)
 					return mock
 				},
-				cacheClient: func(ctrl *gomock.Controller) domain.CacheClient {
-					mock := mock_domain.NewMockCacheClient(ctrl)
+				cacheClient: func(ctrl *gomock.Controller) usecase.CacheClient {
+					mock := mock_usecase.NewMockCacheClient(ctrl)
 					mock.EXPECT().Exists(gomock.Any(), gomock.Any()).Return(false, nil)
 					return mock
 				},
-				keyGenerator: func(ctrl *gomock.Controller) domain.CacheKeyGenerator {
-					mock := mock_domain.NewMockCacheKeyGenerator(ctrl)
+				keyGenerator: func(ctrl *gomock.Controller) usecase.CacheKeyGenerator {
+					mock := mock_usecase.NewMockCacheKeyGenerator(ctrl)
 					mock.EXPECT().MetadataKey(gomock.Any()).Return("metadata:1234567890123456789012345678901234567890123456789012345678901234")
 					return mock
 				},
-				cacheConfig: func(ctrl *gomock.Controller) domain.CacheConfig {
-					return mock_domain.NewMockCacheConfig(ctrl)
+				cacheConfig: func(ctrl *gomock.Controller) usecase.CacheConfig {
+					return mock_usecase.NewMockCacheConfig(ctrl)
 				},
 			},
 			args: func() args {
@@ -559,9 +561,9 @@ func TestCachingLFSObjectRepository_ExistsByOID(t *testing.T) {
 func TestCachingLFSObjectRepository_DeleteBatchUploadKey(t *testing.T) {
 	type fields struct {
 		repo         func(ctrl *gomock.Controller) domain.LFSObjectRepository
-		cacheClient  func(ctrl *gomock.Controller) domain.CacheClient
-		keyGenerator func(ctrl *gomock.Controller) domain.CacheKeyGenerator
-		cacheConfig  func(ctrl *gomock.Controller) domain.CacheConfig
+		cacheClient  func(ctrl *gomock.Controller) usecase.CacheClient
+		keyGenerator func(ctrl *gomock.Controller) usecase.CacheKeyGenerator
+		cacheConfig  func(ctrl *gomock.Controller) usecase.CacheConfig
 	}
 	type args struct {
 		ctx context.Context
@@ -579,18 +581,18 @@ func TestCachingLFSObjectRepository_DeleteBatchUploadKey(t *testing.T) {
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					return mock_domain.NewMockLFSObjectRepository(ctrl)
 				},
-				cacheClient: func(ctrl *gomock.Controller) domain.CacheClient {
-					mock := mock_domain.NewMockCacheClient(ctrl)
+				cacheClient: func(ctrl *gomock.Controller) usecase.CacheClient {
+					mock := mock_usecase.NewMockCacheClient(ctrl)
 					mock.EXPECT().Delete(gomock.Any(), "batch:1234567890123456789012345678901234567890123456789012345678901234").Return(nil)
 					return mock
 				},
-				keyGenerator: func(ctrl *gomock.Controller) domain.CacheKeyGenerator {
-					mock := mock_domain.NewMockCacheKeyGenerator(ctrl)
+				keyGenerator: func(ctrl *gomock.Controller) usecase.CacheKeyGenerator {
+					mock := mock_usecase.NewMockCacheKeyGenerator(ctrl)
 					mock.EXPECT().BatchUploadKey("1234567890123456789012345678901234567890123456789012345678901234").Return("batch:1234567890123456789012345678901234567890123456789012345678901234")
 					return mock
 				},
-				cacheConfig: func(ctrl *gomock.Controller) domain.CacheConfig {
-					return mock_domain.NewMockCacheConfig(ctrl)
+				cacheConfig: func(ctrl *gomock.Controller) usecase.CacheConfig {
+					return mock_usecase.NewMockCacheConfig(ctrl)
 				},
 			},
 			args: args{
@@ -605,18 +607,18 @@ func TestCachingLFSObjectRepository_DeleteBatchUploadKey(t *testing.T) {
 				repo: func(ctrl *gomock.Controller) domain.LFSObjectRepository {
 					return mock_domain.NewMockLFSObjectRepository(ctrl)
 				},
-				cacheClient: func(ctrl *gomock.Controller) domain.CacheClient {
-					mock := mock_domain.NewMockCacheClient(ctrl)
+				cacheClient: func(ctrl *gomock.Controller) usecase.CacheClient {
+					mock := mock_usecase.NewMockCacheClient(ctrl)
 					mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(errors.New("redis delete error"))
 					return mock
 				},
-				keyGenerator: func(ctrl *gomock.Controller) domain.CacheKeyGenerator {
-					mock := mock_domain.NewMockCacheKeyGenerator(ctrl)
+				keyGenerator: func(ctrl *gomock.Controller) usecase.CacheKeyGenerator {
+					mock := mock_usecase.NewMockCacheKeyGenerator(ctrl)
 					mock.EXPECT().BatchUploadKey(gomock.Any()).Return("batch:test")
 					return mock
 				},
-				cacheConfig: func(ctrl *gomock.Controller) domain.CacheConfig {
-					return mock_domain.NewMockCacheConfig(ctrl)
+				cacheConfig: func(ctrl *gomock.Controller) usecase.CacheConfig {
+					return mock_usecase.NewMockCacheConfig(ctrl)
 				},
 			},
 			args: args{

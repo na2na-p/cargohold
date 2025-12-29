@@ -1,4 +1,4 @@
-package oidc_test
+package oidc
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/na2na-p/cargohold/internal/infrastructure/oidc"
 )
 
 func TestNewGitHubTokenExchanger(t *testing.T) {
@@ -52,7 +51,7 @@ func TestNewGitHubTokenExchanger(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			exchanger, err := oidc.NewGitHubTokenExchanger(tt.clientID, tt.clientSecret, tt.redirectURI)
+			exchanger, err := NewGitHubTokenExchanger(tt.clientID, tt.clientSecret, tt.redirectURI)
 
 			if tt.wantErr {
 				if err == nil {
@@ -110,7 +109,7 @@ func TestGitHubTokenExchanger_GetAuthorizationURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			exchanger, err := oidc.NewGitHubTokenExchanger("test-client-id", "test-client-secret", "http://localhost:8080/callback")
+			exchanger, err := NewGitHubTokenExchanger("test-client-id", "test-client-secret", "http://localhost:8080/callback")
 			if err != nil {
 				t.Fatalf("Exchanger作成に失敗: %v", err)
 			}
@@ -137,7 +136,7 @@ func TestGitHubTokenExchanger_ExchangeCode(t *testing.T) {
 		name           string
 		code           string
 		serverResponse func(w http.ResponseWriter, r *http.Request)
-		want           *oidc.OAuthToken
+		want           *oauthToken
 		wantErr        bool
 		wantErrMsg     string
 	}{
@@ -160,7 +159,7 @@ func TestGitHubTokenExchanger_ExchangeCode(t *testing.T) {
 					"scope":        "read:user,repo",
 				})
 			},
-			want: &oidc.OAuthToken{
+			want: &oauthToken{
 				AccessToken: "gho_test_token_123",
 				TokenType:   "bearer",
 				Scope:       "read:user,repo",
@@ -213,7 +212,7 @@ func TestGitHubTokenExchanger_ExchangeCode(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(tt.serverResponse))
 			defer server.Close()
 
-			exchanger, err := oidc.NewGitHubTokenExchanger("test-client-id", "test-client-secret", "http://localhost:8080/callback")
+			exchanger, err := NewGitHubTokenExchanger("test-client-id", "test-client-secret", "http://localhost:8080/callback")
 			if err != nil {
 				t.Fatalf("Exchanger作成に失敗: %v", err)
 			}

@@ -16,7 +16,6 @@ import (
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
-	"github.com/na2na-p/cargohold/internal/infrastructure/s3"
 	"github.com/na2na-p/cargohold/internal/usecase"
 	mock_usecase "github.com/na2na-p/cargohold/tests/usecase"
 	"go.uber.org/mock/gomock"
@@ -24,9 +23,10 @@ import (
 
 func TestProxyHandler_HandleUpload(t *testing.T) {
 	type fields struct {
-		setupUploadMock   func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase
-		setupDownloadMock func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase
-		proxyTimeout      time.Duration
+		setupUploadMock              func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase
+		setupDownloadMock            func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase
+		setupStorageErrorCheckerMock func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker
+		proxyTimeout                 time.Duration
 	}
 	type args struct {
 		method  string
@@ -55,6 +55,9 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
 					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					return mock_usecase.NewMockStorageErrorChecker(ctrl)
+				},
 				proxyTimeout: 10 * time.Minute,
 			},
 			args: args{
@@ -79,6 +82,9 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 				},
 				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
 					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
+				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					return mock_usecase.NewMockStorageErrorChecker(ctrl)
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -107,6 +113,9 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
 					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					return mock_usecase.NewMockStorageErrorChecker(ctrl)
+				},
 				proxyTimeout: 10 * time.Minute,
 			},
 			args: args{
@@ -134,6 +143,9 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
 					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					return mock_usecase.NewMockStorageErrorChecker(ctrl)
+				},
 				proxyTimeout: 10 * time.Minute,
 			},
 			args: args{
@@ -155,11 +167,16 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 			fields: fields{
 				setupUploadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase {
 					m := mock_usecase.NewMockProxyUploadUseCase(ctrl)
-					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(s3.NewStorageError(s3.OperationPut, errors.New("connection refused")))
+					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("storage error"))
 					return m
 				},
 				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
 					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
+				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					m := mock_usecase.NewMockStorageErrorChecker(ctrl)
+					m.EXPECT().IsStorageError(gomock.Any()).Return(true)
+					return m
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -188,6 +205,11 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
 					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					m := mock_usecase.NewMockStorageErrorChecker(ctrl)
+					m.EXPECT().IsStorageError(gomock.Any()).Return(false)
+					return m
+				},
 				proxyTimeout: 10 * time.Minute,
 			},
 			args: args{
@@ -214,6 +236,9 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 				},
 				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
 					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
+				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					return mock_usecase.NewMockStorageErrorChecker(ctrl)
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -250,7 +275,8 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 
 			mockUploadUC := tt.fields.setupUploadMock(ctrl)
 			mockDownloadUC := tt.fields.setupDownloadMock(ctrl)
-			h := handler.NewProxyHandler(mockUploadUC, mockDownloadUC, tt.fields.proxyTimeout)
+			mockStorageErrorChecker := tt.fields.setupStorageErrorCheckerMock(ctrl)
+			h := handler.NewProxyHandler(mockUploadUC, mockDownloadUC, mockStorageErrorChecker, tt.fields.proxyTimeout)
 			err := h.HandleUpload(c)
 			if err != nil {
 				e.HTTPErrorHandler(err, c)
@@ -265,9 +291,10 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 
 func TestProxyHandler_HandleDownload(t *testing.T) {
 	type fields struct {
-		setupUploadMock   func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase
-		setupDownloadMock func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase
-		proxyTimeout      time.Duration
+		setupUploadMock              func(ctrl *gomock.Controller) *mock_usecase.MockProxyUploadUseCase
+		setupDownloadMock            func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase
+		setupStorageErrorCheckerMock func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker
+		proxyTimeout                 time.Duration
 	}
 	type args struct {
 		method  string
@@ -301,6 +328,9 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 					)
 					return m
 				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					return mock_usecase.NewMockStorageErrorChecker(ctrl)
+				},
 				proxyTimeout: 10 * time.Minute,
 			},
 			args: args{
@@ -325,6 +355,9 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 				},
 				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
 					return mock_usecase.NewMockProxyDownloadUseCase(ctrl)
+				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					return mock_usecase.NewMockStorageErrorChecker(ctrl)
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -351,6 +384,9 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), usecase.ErrObjectNotFound)
 					return m
 				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					return mock_usecase.NewMockStorageErrorChecker(ctrl)
+				},
 				proxyTimeout: 10 * time.Minute,
 			},
 			args: args{
@@ -375,6 +411,9 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 					m := mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), usecase.ErrNotUploaded)
 					return m
+				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					return mock_usecase.NewMockStorageErrorChecker(ctrl)
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -401,6 +440,9 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), context.DeadlineExceeded)
 					return m
 				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					return mock_usecase.NewMockStorageErrorChecker(ctrl)
+				},
 				proxyTimeout: 10 * time.Minute,
 			},
 			args: args{
@@ -423,7 +465,12 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 				},
 				setupDownloadMock: func(ctrl *gomock.Controller) *mock_usecase.MockProxyDownloadUseCase {
 					m := mock_usecase.NewMockProxyDownloadUseCase(ctrl)
-					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), s3.NewStorageError(s3.OperationGet, errors.New("connection refused")))
+					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), errors.New("storage error"))
+					return m
+				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					m := mock_usecase.NewMockStorageErrorChecker(ctrl)
+					m.EXPECT().IsStorageError(gomock.Any()).Return(true)
 					return m
 				},
 				proxyTimeout: 10 * time.Minute,
@@ -451,6 +498,11 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), errors.New("unknown error"))
 					return m
 				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					m := mock_usecase.NewMockStorageErrorChecker(ctrl)
+					m.EXPECT().IsStorageError(gomock.Any()).Return(false)
+					return m
+				},
 				proxyTimeout: 10 * time.Minute,
 			},
 			args: args{
@@ -475,6 +527,9 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 					m := mock_usecase.NewMockProxyDownloadUseCase(ctrl)
 					m.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, int64(0), usecase.ErrAccessDenied)
 					return m
+				},
+				setupStorageErrorCheckerMock: func(ctrl *gomock.Controller) *mock_usecase.MockStorageErrorChecker {
+					return mock_usecase.NewMockStorageErrorChecker(ctrl)
 				},
 				proxyTimeout: 10 * time.Minute,
 			},
@@ -509,7 +564,8 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 
 			mockUploadUC := tt.fields.setupUploadMock(ctrl)
 			mockDownloadUC := tt.fields.setupDownloadMock(ctrl)
-			h := handler.NewProxyHandler(mockUploadUC, mockDownloadUC, tt.fields.proxyTimeout)
+			mockStorageErrorChecker := tt.fields.setupStorageErrorCheckerMock(ctrl)
+			h := handler.NewProxyHandler(mockUploadUC, mockDownloadUC, mockStorageErrorChecker, tt.fields.proxyTimeout)
 			err := h.HandleDownload(c)
 			if err != nil {
 				e.HTTPErrorHandler(err, c)
@@ -541,9 +597,10 @@ func TestNewProxyHandler(t *testing.T) {
 
 	mockUploadUC := mock_usecase.NewMockProxyUploadUseCase(ctrl)
 	mockDownloadUC := mock_usecase.NewMockProxyDownloadUseCase(ctrl)
+	mockStorageErrorChecker := mock_usecase.NewMockStorageErrorChecker(ctrl)
 	timeout := 5 * time.Minute
 
-	h := handler.NewProxyHandler(mockUploadUC, mockDownloadUC, timeout)
+	h := handler.NewProxyHandler(mockUploadUC, mockDownloadUC, mockStorageErrorChecker, timeout)
 
 	if h == nil {
 		t.Fatal("NewProxyHandler() returned nil")

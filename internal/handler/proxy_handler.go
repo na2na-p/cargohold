@@ -9,20 +9,21 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/na2na-p/cargohold/internal/domain"
-	"github.com/na2na-p/cargohold/internal/infrastructure/s3"
 	"github.com/na2na-p/cargohold/internal/usecase"
 )
 
 type ProxyHandler struct {
 	proxyUploadUseCase   usecase.ProxyUploadUseCase
 	proxyDownloadUseCase usecase.ProxyDownloadUseCase
+	storageErrorChecker  usecase.StorageErrorChecker
 	proxyTimeout         time.Duration
 }
 
-func NewProxyHandler(uploadUC usecase.ProxyUploadUseCase, downloadUC usecase.ProxyDownloadUseCase, proxyTimeout time.Duration) *ProxyHandler {
+func NewProxyHandler(uploadUC usecase.ProxyUploadUseCase, downloadUC usecase.ProxyDownloadUseCase, storageErrorChecker usecase.StorageErrorChecker, proxyTimeout time.Duration) *ProxyHandler {
 	return &ProxyHandler{
 		proxyUploadUseCase:   uploadUC,
 		proxyDownloadUseCase: downloadUC,
+		storageErrorChecker:  storageErrorChecker,
 		proxyTimeout:         proxyTimeout,
 	}
 }
@@ -95,5 +96,5 @@ func (h *ProxyHandler) handleProxyError(c echo.Context, err error) error {
 }
 
 func (h *ProxyHandler) isStorageError(err error) bool {
-	return s3.IsStorageError(err)
+	return h.storageErrorChecker.IsStorageError(err)
 }

@@ -13,13 +13,13 @@ const (
 	GitHubAPIBaseURL        = "https://api.github.com"
 )
 
-type OAuthToken struct {
+type oauthToken struct {
 	AccessToken string
 	TokenType   string
 	Scope       string
 }
 
-type GitHubUser struct {
+type gitHubUser struct {
 	ID    int64
 	Login string
 	Name  string
@@ -64,14 +64,14 @@ func (p *GitHubOAuthProvider) GetAuthorizationURL(state string, scopes []string)
 	return p.tokenExchanger.GetAuthorizationURL(state, scopes)
 }
 
-func (p *GitHubOAuthProvider) ExchangeCode(ctx context.Context, code string) (*OAuthToken, error) {
+func (p *GitHubOAuthProvider) ExchangeCode(ctx context.Context, code string) (*oauthToken, error) {
 	return p.tokenExchanger.ExchangeCode(ctx, code)
 }
 
-func (p *GitHubOAuthProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*GitHubUser, error) {
+func (p *GitHubOAuthProvider) GetUserInfo(ctx context.Context, token *oauthToken) (*gitHubUser, error) {
 	return p.userInfoProvider.GetUserInfo(ctx, token)
 }
 
-func (p *GitHubOAuthProvider) CanAccessRepository(ctx context.Context, token *OAuthToken, repo *domain.RepositoryIdentifier) (bool, error) {
+func (p *GitHubOAuthProvider) CanAccessRepository(ctx context.Context, token *oauthToken, repo *domain.RepositoryIdentifier) (bool, error) {
 	return p.repositoryChecker.CanAccessRepository(ctx, token, repo)
 }

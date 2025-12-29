@@ -5,12 +5,8 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/na2na-p/cargohold/internal/handler/common"
 	"github.com/na2na-p/cargohold/internal/usecase"
-)
-
-const (
-	LFSSessionCookieName = "lfs_session"
-	LFSSessionMaxAge     = 86400
 )
 
 func GitHubCallbackHandler(githubOAuthUC GitHubOAuthUseCaseInterface) echo.HandlerFunc {
@@ -37,13 +33,13 @@ func GitHubCallbackHandler(githubOAuthUC GitHubOAuthUseCaseInterface) echo.Handl
 		}
 
 		cookie := &http.Cookie{
-			Name:     LFSSessionCookieName,
+			Name:     common.LFSSessionCookieName,
 			Value:    sessionID,
 			Path:     "/",
 			HttpOnly: true,
 			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
-			MaxAge:   LFSSessionMaxAge,
+			MaxAge:   common.LFSSessionMaxAge,
 		}
 		c.SetCookie(cookie)
 

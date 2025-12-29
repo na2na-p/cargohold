@@ -48,3 +48,14 @@ func IsStorageError(err error) bool {
 	var storageErr *StorageError
 	return errors.As(err, &storageErr)
 }
+
+
+type StorageErrorCheckerImpl struct{}
+
+func NewStorageErrorChecker() *StorageErrorCheckerImpl {
+	return &StorageErrorCheckerImpl{}
+}
+
+func (c *StorageErrorCheckerImpl) IsStorageError(err error) bool {
+	return IsStorageError(err)
+}

@@ -1,4 +1,4 @@
-//go:generate mockgen -source=$GOFILE -destination=../../../tests/infrastructure/oidc/mock_user_info_provider.go -package=oidc
+//go:generate mockgen -source=$GOFILE -destination=mock_user_info_provider_test.go -package=oidc
 package oidc
 
 import (
@@ -6,5 +6,5 @@ import (
 )
 
 type UserInfoProvider interface {
-	GetUserInfo(ctx context.Context, token *OAuthToken) (*GitHubUser, error)
+	GetUserInfo(ctx context.Context, token *oauthToken) (*gitHubUser, error)
 }

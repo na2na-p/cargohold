@@ -1,4 +1,4 @@
-//go:generate mockgen -source=$GOFILE -destination=../../../tests/infrastructure/oidc/mock_token_exchanger.go -package=oidc
+//go:generate mockgen -source=$GOFILE -destination=mock_token_exchanger_test.go -package=oidc
 package oidc
 
 import (
@@ -7,5 +7,5 @@ import (
 
 type TokenExchanger interface {
 	GetAuthorizationURL(state string, scopes []string) string
-	ExchangeCode(ctx context.Context, code string) (*OAuthToken, error)
+	ExchangeCode(ctx context.Context, code string) (*oauthToken, error)
 }

@@ -1,4 +1,4 @@
-//go:generate mockgen -source=$GOFILE -destination=../../../tests/infrastructure/oidc/mock_github_oauth_provider_adapter.go -package=oidc
+//go:generate mockgen -source=$GOFILE -destination=mock_github_oauth_provider_internal_test.go -package=oidc
 package oidc
 
 import (
@@ -11,9 +11,9 @@ import (
 type GitHubOAuthProviderInternal interface {
 	SetRedirectURI(redirectURI string)
 	GetAuthorizationURL(state string, scopes []string) string
-	ExchangeCode(ctx context.Context, code string) (*OAuthToken, error)
-	GetUserInfo(ctx context.Context, token *OAuthToken) (*GitHubUser, error)
-	CanAccessRepository(ctx context.Context, token *OAuthToken, repo *domain.RepositoryIdentifier) (bool, error)
+	ExchangeCode(ctx context.Context, code string) (*oauthToken, error)
+	GetUserInfo(ctx context.Context, token *oauthToken) (*gitHubUser, error)
+	CanAccessRepository(ctx context.Context, token *oauthToken, repo *domain.RepositoryIdentifier) (bool, error)
 }
 
 type GitHubOAuthProviderAdapter struct {
@@ -50,7 +50,7 @@ func (a *GitHubOAuthProviderAdapter) ExchangeCode(ctx context.Context, code stri
 }
 
 func (a *GitHubOAuthProviderAdapter) GetUserInfo(ctx context.Context, token *usecase.OAuthTokenResult) (*usecase.GitHubUserResult, error) {
-	internalToken := &OAuthToken{
+	internalToken := &oauthToken{
 		AccessToken: token.AccessToken,
 		TokenType:   token.TokenType,
 		Scope:       token.Scope,
@@ -67,7 +67,7 @@ func (a *GitHubOAuthProviderAdapter) GetUserInfo(ctx context.Context, token *use
 }
 
 func (a *GitHubOAuthProviderAdapter) CanAccessRepository(ctx context.Context, token *usecase.OAuthTokenResult, repo *domain.RepositoryIdentifier) (bool, error) {
-	internalToken := &OAuthToken{
+	internalToken := &oauthToken{
 		AccessToken: token.AccessToken,
 		TokenType:   token.TokenType,
 		Scope:       token.Scope,

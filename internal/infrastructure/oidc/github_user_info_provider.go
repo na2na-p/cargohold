@@ -25,7 +25,7 @@ func (p *gitHubUserInfoProvider) SetUserInfoEndpoint(endpoint string) {
 	p.userInfoEndpoint = endpoint
 }
 
-func (p *gitHubUserInfoProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*GitHubUser, error) {
+func (p *gitHubUserInfoProvider) GetUserInfo(ctx context.Context, token *oauthToken) (*gitHubUser, error) {
 	if token == nil {
 		return nil, fmt.Errorf("token is required")
 	}
@@ -66,7 +66,7 @@ func (p *gitHubUserInfoProvider) GetUserInfo(ctx context.Context, token *OAuthTo
 		return nil, fmt.Errorf("レスポンスのパースに失敗しました: %w", err)
 	}
 
-	return &GitHubUser{
+	return &gitHubUser{
 		ID:    userResp.ID,
 		Login: userResp.Login,
 		Name:  userResp.Name,

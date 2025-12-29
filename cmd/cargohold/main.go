@@ -164,7 +164,8 @@ func run() error {
 	verifyUC := usecase.NewVerifyUseCase(cachingRepo, cachingRepo)
 	proxyUploadUC := usecase.NewProxyUploadUseCase(cachingRepo, s3Client, accessAuthService)
 	proxyDownloadUC := usecase.NewProxyDownloadUseCase(cachingRepo, s3Client, accessAuthService)
-	proxyHandler := handler.NewProxyHandler(proxyUploadUC, proxyDownloadUC, cfg.Server.ProxyTimeout)
+	storageErrorChecker := s3.NewStorageErrorChecker()
+	proxyHandler := handler.NewProxyHandler(proxyUploadUC, proxyDownloadUC, storageErrorChecker, cfg.Server.ProxyTimeout)
 
 	postgresHealthChecker := postgres.NewPostgresHealthChecker(pool)
 	redisHealthChecker := redis.NewRedisHealthChecker(redisClient)

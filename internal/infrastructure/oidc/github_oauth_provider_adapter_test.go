@@ -1,4 +1,4 @@
-package oidc_test
+package oidc
 
 import (
 	"context"
@@ -7,16 +7,14 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/na2na-p/cargohold/internal/domain"
-	"github.com/na2na-p/cargohold/internal/infrastructure/oidc"
 	"github.com/na2na-p/cargohold/internal/usecase"
-	mock_oidc "github.com/na2na-p/cargohold/tests/infrastructure/oidc"
 	"go.uber.org/mock/gomock"
 )
 
 func TestNewGitHubOAuthProviderAdapter(t *testing.T) {
 	tests := []struct {
 		name     string
-		provider oidc.GitHubOAuthProviderInternal
+		provider GitHubOAuthProviderInternal
 		wantNil  bool
 	}{
 		{
@@ -28,7 +26,7 @@ func TestNewGitHubOAuthProviderAdapter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			adapter := oidc.NewGitHubOAuthProviderAdapter(tt.provider)
+			adapter := NewGitHubOAuthProviderAdapter(tt.provider)
 			if tt.wantNil && adapter != nil {
 				t.Errorf("nilが期待されましたが、アダプターが返りました")
 			}
@@ -42,7 +40,7 @@ func TestNewGitHubOAuthProviderAdapter(t *testing.T) {
 func TestNewGitHubOAuthProviderAdapter_PanicOnNilProvider(t *testing.T) {
 	tests := []struct {
 		name          string
-		provider      oidc.GitHubOAuthProviderInternal
+		provider      GitHubOAuthProviderInternal
 		wantPanic     bool
 		panicContains string
 	}{
@@ -78,14 +76,14 @@ func TestNewGitHubOAuthProviderAdapter_PanicOnNilProvider(t *testing.T) {
 				}
 			}()
 
-			oidc.NewGitHubOAuthProviderAdapter(tt.provider)
+			NewGitHubOAuthProviderAdapter(tt.provider)
 		})
 	}
 }
 
 func TestGitHubOAuthProviderAdapter_GetAuthorizationURL(t *testing.T) {
 	type fields struct {
-		setupMock func(ctrl *gomock.Controller) *mock_oidc.MockGitHubOAuthProviderInternal
+		setupMock func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal
 	}
 	type args struct {
 		state  string
@@ -100,8 +98,8 @@ func TestGitHubOAuthProviderAdapter_GetAuthorizationURL(t *testing.T) {
 		{
 			name: "正常系: 内部プロバイダーにそのまま委譲される",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_oidc.MockGitHubOAuthProviderInternal {
-					mock := mock_oidc.NewMockGitHubOAuthProviderInternal(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
+					mock := NewMockGitHubOAuthProviderInternal(ctrl)
 					mock.EXPECT().GetAuthorizationURL("test-state", []string{"read:user", "repo"}).Return("https://github.com/login/oauth/authorize?state=test-state")
 					return mock
 				},
@@ -115,8 +113,8 @@ func TestGitHubOAuthProviderAdapter_GetAuthorizationURL(t *testing.T) {
 		{
 			name: "正常系: スコープが空の場合も正しく委譲される",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_oidc.MockGitHubOAuthProviderInternal {
-					mock := mock_oidc.NewMockGitHubOAuthProviderInternal(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
+					mock := NewMockGitHubOAuthProviderInternal(ctrl)
 					mock.EXPECT().GetAuthorizationURL("state-empty-scope", []string{}).Return("https://github.com/login/oauth/authorize?state=state-empty-scope")
 					return mock
 				},
@@ -135,7 +133,7 @@ func TestGitHubOAuthProviderAdapter_GetAuthorizationURL(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockProvider := tt.fields.setupMock(ctrl)
-			adapter := oidc.NewGitHubOAuthProviderAdapter(mockProvider)
+			adapter := NewGitHubOAuthProviderAdapter(mockProvider)
 
 			got := adapter.GetAuthorizationURL(tt.args.state, tt.args.scopes)
 
@@ -148,7 +146,7 @@ func TestGitHubOAuthProviderAdapter_GetAuthorizationURL(t *testing.T) {
 
 func TestGitHubOAuthProviderAdapter_ExchangeCode(t *testing.T) {
 	type fields struct {
-		setupMock func(ctrl *gomock.Controller) *mock_oidc.MockGitHubOAuthProviderInternal
+		setupMock func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal
 	}
 	type args struct {
 		ctx  context.Context
@@ -164,9 +162,9 @@ func TestGitHubOAuthProviderAdapter_ExchangeCode(t *testing.T) {
 		{
 			name: "正常系: 内部プロバイダーの結果がOAuthTokenResultに変換される",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_oidc.MockGitHubOAuthProviderInternal {
-					mock := mock_oidc.NewMockGitHubOAuthProviderInternal(ctrl)
-					mock.EXPECT().ExchangeCode(gomock.Any(), "valid-code").Return(&oidc.OAuthToken{
+				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
+					mock := NewMockGitHubOAuthProviderInternal(ctrl)
+					mock.EXPECT().ExchangeCode(gomock.Any(), "valid-code").Return(&oauthToken{
 						AccessToken: "gho_test_token",
 						TokenType:   "bearer",
 						Scope:       "read:user,repo",
@@ -188,8 +186,8 @@ func TestGitHubOAuthProviderAdapter_ExchangeCode(t *testing.T) {
 		{
 			name: "異常系: 内部プロバイダーがエラーを返す場合、エラーがそのまま返される",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_oidc.MockGitHubOAuthProviderInternal {
-					mock := mock_oidc.NewMockGitHubOAuthProviderInternal(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
+					mock := NewMockGitHubOAuthProviderInternal(ctrl)
 					mock.EXPECT().ExchangeCode(gomock.Any(), "invalid-code").Return(nil, errors.New("invalid code"))
 					return mock
 				},
@@ -209,7 +207,7 @@ func TestGitHubOAuthProviderAdapter_ExchangeCode(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockProvider := tt.fields.setupMock(ctrl)
-			adapter := oidc.NewGitHubOAuthProviderAdapter(mockProvider)
+			adapter := NewGitHubOAuthProviderAdapter(mockProvider)
 
 			got, err := adapter.ExchangeCode(tt.args.ctx, tt.args.code)
 
@@ -236,7 +234,7 @@ func TestGitHubOAuthProviderAdapter_ExchangeCode(t *testing.T) {
 
 func TestGitHubOAuthProviderAdapter_GetUserInfo(t *testing.T) {
 	type fields struct {
-		setupMock func(ctrl *gomock.Controller) *mock_oidc.MockGitHubOAuthProviderInternal
+		setupMock func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal
 	}
 	type args struct {
 		ctx   context.Context
@@ -252,14 +250,14 @@ func TestGitHubOAuthProviderAdapter_GetUserInfo(t *testing.T) {
 		{
 			name: "正常系: OAuthTokenResultがOAuthTokenに変換されて呼び出され、GitHubUserがGitHubUserResultに変換される",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_oidc.MockGitHubOAuthProviderInternal {
-					mock := mock_oidc.NewMockGitHubOAuthProviderInternal(ctrl)
-					expectedToken := &oidc.OAuthToken{
+				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
+					mock := NewMockGitHubOAuthProviderInternal(ctrl)
+					expectedToken := &oauthToken{
 						AccessToken: "gho_test_token",
 						TokenType:   "bearer",
 						Scope:       "read:user",
 					}
-					mock.EXPECT().GetUserInfo(gomock.Any(), expectedToken).Return(&oidc.GitHubUser{
+					mock.EXPECT().GetUserInfo(gomock.Any(), expectedToken).Return(&gitHubUser{
 						ID:    12345,
 						Login: "testuser",
 						Name:  "Test User",
@@ -285,8 +283,8 @@ func TestGitHubOAuthProviderAdapter_GetUserInfo(t *testing.T) {
 		{
 			name: "異常系: 内部プロバイダーがエラーを返す場合、エラーがそのまま返される",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_oidc.MockGitHubOAuthProviderInternal {
-					mock := mock_oidc.NewMockGitHubOAuthProviderInternal(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
+					mock := NewMockGitHubOAuthProviderInternal(ctrl)
 					mock.EXPECT().GetUserInfo(gomock.Any(), gomock.Any()).Return(nil, errors.New("unauthorized"))
 					return mock
 				},
@@ -309,7 +307,7 @@ func TestGitHubOAuthProviderAdapter_GetUserInfo(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockProvider := tt.fields.setupMock(ctrl)
-			adapter := oidc.NewGitHubOAuthProviderAdapter(mockProvider)
+			adapter := NewGitHubOAuthProviderAdapter(mockProvider)
 
 			got, err := adapter.GetUserInfo(tt.args.ctx, tt.args.token)
 
@@ -336,7 +334,7 @@ func TestGitHubOAuthProviderAdapter_GetUserInfo(t *testing.T) {
 
 func TestGitHubOAuthProviderAdapter_CanAccessRepository(t *testing.T) {
 	type fields struct {
-		setupMock func(ctrl *gomock.Controller) *mock_oidc.MockGitHubOAuthProviderInternal
+		setupMock func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal
 	}
 	type args struct {
 		ctx   context.Context
@@ -353,9 +351,9 @@ func TestGitHubOAuthProviderAdapter_CanAccessRepository(t *testing.T) {
 		{
 			name: "正常系: アクセス可能な場合trueが返される",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_oidc.MockGitHubOAuthProviderInternal {
-					mock := mock_oidc.NewMockGitHubOAuthProviderInternal(ctrl)
-					expectedToken := &oidc.OAuthToken{
+				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
+					mock := NewMockGitHubOAuthProviderInternal(ctrl)
+					expectedToken := &oauthToken{
 						AccessToken: "gho_test_token",
 						TokenType:   "bearer",
 						Scope:       "repo",
@@ -379,8 +377,8 @@ func TestGitHubOAuthProviderAdapter_CanAccessRepository(t *testing.T) {
 		{
 			name: "正常系: アクセス不可能な場合falseが返される",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_oidc.MockGitHubOAuthProviderInternal {
-					mock := mock_oidc.NewMockGitHubOAuthProviderInternal(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
+					mock := NewMockGitHubOAuthProviderInternal(ctrl)
 					mock.EXPECT().CanAccessRepository(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
 					return mock
 				},
@@ -399,8 +397,8 @@ func TestGitHubOAuthProviderAdapter_CanAccessRepository(t *testing.T) {
 		{
 			name: "異常系: 内部プロバイダーがエラーを返す場合、エラーがそのまま返される",
 			fields: fields{
-				setupMock: func(ctrl *gomock.Controller) *mock_oidc.MockGitHubOAuthProviderInternal {
-					mock := mock_oidc.NewMockGitHubOAuthProviderInternal(ctrl)
+				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
+					mock := NewMockGitHubOAuthProviderInternal(ctrl)
 					mock.EXPECT().CanAccessRepository(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, errors.New("server error"))
 					return mock
 				},
@@ -424,7 +422,7 @@ func TestGitHubOAuthProviderAdapter_CanAccessRepository(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockProvider := tt.fields.setupMock(ctrl)
-			adapter := oidc.NewGitHubOAuthProviderAdapter(mockProvider)
+			adapter := NewGitHubOAuthProviderAdapter(mockProvider)
 
 			got, err := adapter.CanAccessRepository(tt.args.ctx, tt.args.token, tt.args.repo)
 
@@ -453,8 +451,8 @@ func TestGitHubOAuthProviderAdapter_ImplementsInterface(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockProvider := mock_oidc.NewMockGitHubOAuthProviderInternal(ctrl)
-	adapter := oidc.NewGitHubOAuthProviderAdapter(mockProvider)
+	mockProvider := NewMockGitHubOAuthProviderInternal(ctrl)
+	adapter := NewGitHubOAuthProviderAdapter(mockProvider)
 
 	var _ usecase.GitHubOAuthProviderInterface = adapter
 }
@@ -465,15 +463,15 @@ func (m *mockInternalProvider) GetAuthorizationURL(state string, scopes []string
 	return ""
 }
 
-func (m *mockInternalProvider) ExchangeCode(ctx context.Context, code string) (*oidc.OAuthToken, error) {
+func (m *mockInternalProvider) ExchangeCode(ctx context.Context, code string) (*oauthToken, error) {
 	return nil, nil
 }
 
-func (m *mockInternalProvider) GetUserInfo(ctx context.Context, token *oidc.OAuthToken) (*oidc.GitHubUser, error) {
+func (m *mockInternalProvider) GetUserInfo(ctx context.Context, token *oauthToken) (*gitHubUser, error) {
 	return nil, nil
 }
 
-func (m *mockInternalProvider) CanAccessRepository(ctx context.Context, token *oidc.OAuthToken, repo *domain.RepositoryIdentifier) (bool, error) {
+func (m *mockInternalProvider) CanAccessRepository(ctx context.Context, token *oauthToken, repo *domain.RepositoryIdentifier) (bool, error) {
 	return false, nil
 }
 

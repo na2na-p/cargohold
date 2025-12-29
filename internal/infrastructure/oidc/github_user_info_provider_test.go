@@ -1,4 +1,4 @@
-package oidc_test
+package oidc
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/na2na-p/cargohold/internal/infrastructure/oidc"
 )
 
 func TestNewGitHubUserInfoProvider(t *testing.T) {
@@ -24,7 +23,7 @@ func TestNewGitHubUserInfoProvider(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			provider := oidc.NewGitHubUserInfoProvider()
+			provider := NewGitHubUserInfoProvider()
 
 			if provider == nil {
 				t.Fatalf("Providerがnilです")
@@ -36,14 +35,14 @@ func TestNewGitHubUserInfoProvider(t *testing.T) {
 func TestGitHubUserInfoProvider_GetUserInfo(t *testing.T) {
 	tests := []struct {
 		name           string
-		token          *oidc.OAuthToken
+		token          *oauthToken
 		serverResponse func(w http.ResponseWriter, r *http.Request)
-		want           *oidc.GitHubUser
+		want           *gitHubUser
 		wantErr        bool
 	}{
 		{
 			name: "正常系: 有効なトークンでユーザー情報が取得できる",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "gho_valid_token",
 				TokenType:   "bearer",
 			},
@@ -64,7 +63,7 @@ func TestGitHubUserInfoProvider_GetUserInfo(t *testing.T) {
 					"name":  "Test User",
 				})
 			},
-			want: &oidc.GitHubUser{
+			want: &gitHubUser{
 				ID:    12345,
 				Login: "testuser",
 				Name:  "Test User",
@@ -73,7 +72,7 @@ func TestGitHubUserInfoProvider_GetUserInfo(t *testing.T) {
 		},
 		{
 			name: "異常系: 無効なトークンでエラーが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "invalid_token",
 				TokenType:   "bearer",
 			},
@@ -96,7 +95,7 @@ func TestGitHubUserInfoProvider_GetUserInfo(t *testing.T) {
 		},
 		{
 			name: "異常系: AccessTokenが空の場合、エラーが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "",
 				TokenType:   "bearer",
 			},
@@ -112,7 +111,7 @@ func TestGitHubUserInfoProvider_GetUserInfo(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(tt.serverResponse))
 			defer server.Close()
 
-			provider := oidc.NewGitHubUserInfoProvider()
+			provider := NewGitHubUserInfoProvider()
 			provider.SetUserInfoEndpoint(server.URL)
 
 			ctx := context.Background()

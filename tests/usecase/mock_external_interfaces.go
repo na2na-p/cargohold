@@ -215,3 +215,41 @@ func (mr *MockActionURLGeneratorMockRecorder) GenerateUploadURL(baseURL, owner, 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateUploadURL", reflect.TypeOf((*MockActionURLGenerator)(nil).GenerateUploadURL), baseURL, owner, repo, oid)
 }
+
+// MockStorageErrorChecker is a mock of StorageErrorChecker interface.
+type MockStorageErrorChecker struct {
+	ctrl     *gomock.Controller
+	recorder *MockStorageErrorCheckerMockRecorder
+	isgomock struct{}
+}
+
+// MockStorageErrorCheckerMockRecorder is the mock recorder for MockStorageErrorChecker.
+type MockStorageErrorCheckerMockRecorder struct {
+	mock *MockStorageErrorChecker
+}
+
+// NewMockStorageErrorChecker creates a new mock instance.
+func NewMockStorageErrorChecker(ctrl *gomock.Controller) *MockStorageErrorChecker {
+	mock := &MockStorageErrorChecker{ctrl: ctrl}
+	mock.recorder = &MockStorageErrorCheckerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockStorageErrorChecker) EXPECT() *MockStorageErrorCheckerMockRecorder {
+	return m.recorder
+}
+
+// IsStorageError mocks base method.
+func (m *MockStorageErrorChecker) IsStorageError(err error) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsStorageError", err)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsStorageError indicates an expected call of IsStorageError.
+func (mr *MockStorageErrorCheckerMockRecorder) IsStorageError(err any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsStorageError", reflect.TypeOf((*MockStorageErrorChecker)(nil).IsStorageError), err)
+}
