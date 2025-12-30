@@ -225,7 +225,6 @@ func TestNewStorageError(t *testing.T) {
 	}
 }
 
-
 func TestStorageErrorCheckerImpl_IsStorageError(t *testing.T) {
 	checker := s3.NewStorageErrorChecker()
 

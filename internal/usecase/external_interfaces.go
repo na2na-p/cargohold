@@ -26,7 +26,6 @@ type ActionURLGenerator interface {
 	GenerateDownloadURL(baseURL, owner, repo, oid string) string
 }
 
-
 type StorageErrorChecker interface {
 	IsStorageError(err error) bool
 }

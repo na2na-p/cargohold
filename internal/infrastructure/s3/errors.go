@@ -49,7 +49,6 @@ func IsStorageError(err error) bool {
 	return errors.As(err, &storageErr)
 }
 
-
 type StorageErrorCheckerImpl struct{}
 
 func NewStorageErrorChecker() *StorageErrorCheckerImpl {
