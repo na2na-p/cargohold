@@ -237,7 +237,7 @@ func TestAuthUseCase_AuthenticateGitHubOIDC(t *testing.T) {
 
 var (
 	_ usecase.GitHubOIDCProvider           = (*mockGitHubOIDCProvider)(nil)
-	_ domain.CacheClient                   = (*mockCacheClient)(nil)
-	_ domain.CacheKeyGenerator             = (*mockCacheKeyGenerator)(nil)
+	_ usecase.CacheClient                  = (*mockCacheClient)(nil)
+	_ usecase.CacheKeyGenerator            = (*mockCacheKeyGenerator)(nil)
 	_ domain.RepositoryAllowlistRepository = (*mockRepositoryAllowlistRepository)(nil)
 )

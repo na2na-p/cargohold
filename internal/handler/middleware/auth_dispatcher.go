@@ -42,7 +42,7 @@ func AuthDispatcher(authUC AuthUseCaseInterface) echo.MiddlewareFunc {
 				return next(c)
 			}
 
-			cookie, err := c.Cookie(SessionCookieName)
+			cookie, err := c.Cookie(common.LFSSessionCookieName)
 			if err == nil && cookie.Value != "" {
 				userInfo, err := authUC.AuthenticateSession(ctx, cookie.Value)
 				if err == nil {
@@ -90,6 +90,5 @@ func validateRepository(c echo.Context, userInfo *domain.UserInfo) error {
 }
 
 const (
-	SessionCookieName  = "session_id"
 	UserInfoContextKey = "user_info"
 )

@@ -1,4 +1,4 @@
-package oidc_test
+package oidc
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/na2na-p/cargohold/internal/domain"
-	"github.com/na2na-p/cargohold/internal/infrastructure/oidc"
 )
 
 func TestNewGitHubRepositoryChecker(t *testing.T) {
@@ -24,7 +23,7 @@ func TestNewGitHubRepositoryChecker(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			checker := oidc.NewGitHubRepositoryChecker()
+			checker := NewGitHubRepositoryChecker()
 
 			if checker == nil {
 				t.Fatalf("Checkerがnilです")
@@ -36,7 +35,7 @@ func TestNewGitHubRepositoryChecker(t *testing.T) {
 func TestGitHubRepositoryChecker_CanAccessRepository(t *testing.T) {
 	tests := []struct {
 		name           string
-		token          *oidc.OAuthToken
+		token          *oauthToken
 		repo           *domain.RepositoryIdentifier
 		serverResponse func(w http.ResponseWriter, r *http.Request)
 		want           bool
@@ -44,7 +43,7 @@ func TestGitHubRepositoryChecker_CanAccessRepository(t *testing.T) {
 	}{
 		{
 			name: "正常系: アクセス可能なリポジトリの場合、trueが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "gho_valid_token",
 				TokenType:   "bearer",
 			},
@@ -66,7 +65,7 @@ func TestGitHubRepositoryChecker_CanAccessRepository(t *testing.T) {
 		},
 		{
 			name: "正常系: アクセス不可能なリポジトリの場合、falseが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "gho_valid_token",
 				TokenType:   "bearer",
 			},
@@ -91,7 +90,7 @@ func TestGitHubRepositoryChecker_CanAccessRepository(t *testing.T) {
 		},
 		{
 			name: "異常系: リポジトリがnilの場合、エラーが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "gho_valid_token",
 				TokenType:   "bearer",
 			},
@@ -103,7 +102,7 @@ func TestGitHubRepositoryChecker_CanAccessRepository(t *testing.T) {
 		},
 		{
 			name: "異常系: AccessTokenが空の場合、エラーが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "",
 				TokenType:   "bearer",
 			},
@@ -115,7 +114,7 @@ func TestGitHubRepositoryChecker_CanAccessRepository(t *testing.T) {
 		},
 		{
 			name: "異常系: サーバーエラーの場合、エラーが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "gho_valid_token",
 				TokenType:   "bearer",
 			},
@@ -133,7 +132,7 @@ func TestGitHubRepositoryChecker_CanAccessRepository(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(tt.serverResponse))
 			defer server.Close()
 
-			checker := oidc.NewGitHubRepositoryChecker()
+			checker := NewGitHubRepositoryChecker()
 			checker.SetAPIEndpoint(server.URL)
 
 			ctx := context.Background()

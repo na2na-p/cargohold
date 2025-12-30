@@ -1,4 +1,4 @@
-//go:generate mockgen -source=$GOFILE -destination=../../../tests/infrastructure/oidc/mock_repository_checker.go -package=oidc
+//go:generate mockgen -source=$GOFILE -destination=mock_repository_checker_test.go -package=oidc
 package oidc
 
 import (
@@ -8,5 +8,5 @@ import (
 )
 
 type RepositoryChecker interface {
-	CanAccessRepository(ctx context.Context, token *OAuthToken, repo *domain.RepositoryIdentifier) (bool, error)
+	CanAccessRepository(ctx context.Context, token *oauthToken, repo *domain.RepositoryIdentifier) (bool, error)
 }

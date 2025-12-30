@@ -224,3 +224,52 @@ func TestNewStorageError(t *testing.T) {
 		})
 	}
 }
+
+func TestStorageErrorCheckerImpl_IsStorageError(t *testing.T) {
+	checker := s3.NewStorageErrorChecker()
+
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "正常系: StorageErrorはtrueを返す",
+			err: &s3.StorageError{
+				Operation: s3.OperationPut,
+				Err:       errors.New("some error"),
+			},
+			want: true,
+		},
+		{
+			name: "正常系: wrapされたStorageErrorもtrueを返す",
+			err: errors.Join(
+				errors.New("wrapper"),
+				&s3.StorageError{
+					Operation: s3.OperationGet,
+					Err:       errors.New("nested"),
+				},
+			),
+			want: true,
+		},
+		{
+			name: "正常系: 通常のエラーはfalseを返す",
+			err:  errors.New("normal error"),
+			want: false,
+		},
+		{
+			name: "正常系: nilはfalseを返す",
+			err:  nil,
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := checker.IsStorageError(tt.err)
+			if got != tt.want {
+				t.Errorf("IsStorageError() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

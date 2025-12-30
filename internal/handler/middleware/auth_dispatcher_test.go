@@ -157,7 +157,7 @@ func TestAuthDispatcher(t *testing.T) {
 				owner:  "testowner",
 				repo:   "testrepo",
 				cookies: []*http.Cookie{
-					{Name: "session_id", Value: "valid-session-id"},
+					{Name: "lfs_session", Value: "valid-session-id"},
 				},
 			},
 			wantStatusCode: http.StatusOK,
@@ -187,7 +187,7 @@ func TestAuthDispatcher(t *testing.T) {
 				owner:  "testowner",
 				repo:   "testrepo",
 				cookies: []*http.Cookie{
-					{Name: "session_id", Value: "valid-session-id"},
+					{Name: "lfs_session", Value: "valid-session-id"},
 				},
 			},
 			wantStatusCode: http.StatusForbidden,
@@ -210,7 +210,7 @@ func TestAuthDispatcher(t *testing.T) {
 				owner:  "testowner",
 				repo:   "testrepo",
 				cookies: []*http.Cookie{
-					{Name: "session_id", Value: "invalid-session-id"},
+					{Name: "lfs_session", Value: "invalid-session-id"},
 				},
 			},
 			wantStatusCode: http.StatusUnauthorized,

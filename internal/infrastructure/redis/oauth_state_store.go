@@ -40,14 +40,9 @@ func (s *OAuthStateStore) GetAndDeleteState(ctx context.Context, state string) (
 	key := OIDCStateKey(state)
 
 	var dto oauthStateDTO
-	err := s.client.GetJSON(ctx, key, &dto)
+	err := s.client.GetDelJSON(ctx, key, &dto)
 	if err != nil {
-		return nil, fmt.Errorf("OAuth state の取得に失敗しました: %w", err)
-	}
-
-	err = s.client.Delete(ctx, key)
-	if err != nil {
-		return nil, fmt.Errorf("OAuth state の削除に失敗しました: %w", err)
+		return nil, fmt.Errorf("OAuth state の取得と削除に失敗しました: %w", err)
 	}
 
 	return domain.NewOAuthState(dto.Repository, dto.RedirectURI), nil

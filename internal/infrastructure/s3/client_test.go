@@ -10,31 +10,31 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/go-cmp/cmp"
+	"go.uber.org/mock/gomock"
+
+	mocks3 "github.com/na2na-p/cargohold/tests/infrastructure/s3"
 )
 
 func TestS3Client_PutObject(t *testing.T) {
-	type fields struct {
-		mockAPI func() S3API
-	}
 	type args struct {
 		key           string
 		content       string
 		contentLength int64
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
+		name      string
+		setupMock func(ctrl *gomock.Controller) *mocks3.MockS3API
+		args      args
+		wantErr   bool
 	}{
 		{
 			name: "正常系: オブジェクトのアップロード成功",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						PutObjectFunc: createMockPutObjectSuccess(),
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				mock.EXPECT().
+					PutObject(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(&s3.PutObjectOutput{ETag: aws.String("mock-etag")}, nil)
+				return mock
 			},
 			args: args{
 				key:           "test/object.txt",
@@ -45,12 +45,12 @@ func TestS3Client_PutObject(t *testing.T) {
 		},
 		{
 			name: "正常系: 大きなコンテンツ",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						PutObjectFunc: createMockPutObjectSuccess(),
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				mock.EXPECT().
+					PutObject(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(&s3.PutObjectOutput{ETag: aws.String("mock-etag")}, nil)
+				return mock
 			},
 			args: args{
 				key:           "test/large.txt",
@@ -61,12 +61,12 @@ func TestS3Client_PutObject(t *testing.T) {
 		},
 		{
 			name: "正常系: 特殊文字を含むキー",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						PutObjectFunc: createMockPutObjectSuccess(),
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				mock.EXPECT().
+					PutObject(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(&s3.PutObjectOutput{ETag: aws.String("mock-etag")}, nil)
+				return mock
 			},
 			args: args{
 				key:           "test/special-chars_123.txt",
@@ -77,12 +77,12 @@ func TestS3Client_PutObject(t *testing.T) {
 		},
 		{
 			name: "正常系: 空のコンテンツ",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						PutObjectFunc: createMockPutObjectSuccess(),
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				mock.EXPECT().
+					PutObject(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(&s3.PutObjectOutput{ETag: aws.String("mock-etag")}, nil)
+				return mock
 			},
 			args: args{
 				key:           "test/empty.txt",
@@ -93,14 +93,12 @@ func TestS3Client_PutObject(t *testing.T) {
 		},
 		{
 			name: "異常系: S3エラー",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						PutObjectFunc: func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
-							return nil, errors.New("mock s3 error")
-						},
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				mock.EXPECT().
+					PutObject(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil, errors.New("mock s3 error"))
+				return mock
 			},
 			args: args{
 				key:           "test/error.txt",
@@ -113,8 +111,10 @@ func TestS3Client_PutObject(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
 			ctx := context.Background()
-			client := NewMockS3Client(tt.fields.mockAPI(), "test-bucket")
+			mockAPI := tt.setupMock(ctrl)
+			client := NewMockS3Client(mockAPI, "test-bucket")
 
 			err := client.PutObject(ctx, tt.args.key, strings.NewReader(tt.args.content), tt.args.contentLength)
 			if (err != nil) != tt.wantErr {
@@ -124,29 +124,29 @@ func TestS3Client_PutObject(t *testing.T) {
 	}
 }
 
-// TestS3Client_GetObject はGetObjectのテーブルドリブンテスト
 func TestS3Client_GetObject(t *testing.T) {
-	type fields struct {
-		mockAPI func() S3API
-	}
 	type args struct {
 		key string
 	}
 	tests := []struct {
 		name        string
-		fields      fields
+		setupMock   func(ctrl *gomock.Controller) *mocks3.MockS3API
 		args        args
 		wantContent string
 		wantErr     bool
 	}{
 		{
 			name: "正常系: オブジェクトの取得成功",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						GetObjectFunc: createMockGetObjectSuccess("Hello, S3!"),
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				content := "Hello, S3!"
+				mock.EXPECT().
+					GetObject(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(&s3.GetObjectOutput{
+						Body:          io.NopCloser(strings.NewReader(content)),
+						ContentLength: aws.Int64(int64(len(content))),
+					}, nil)
+				return mock
 			},
 			args: args{
 				key: "test/get-object.txt",
@@ -156,13 +156,16 @@ func TestS3Client_GetObject(t *testing.T) {
 		},
 		{
 			name: "正常系: 大きなコンテンツの取得",
-			fields: fields{
-				mockAPI: func() S3API {
-					largeContent := strings.Repeat("B", 5000)
-					return &MockS3API{
-						GetObjectFunc: createMockGetObjectSuccess(largeContent),
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				largeContent := strings.Repeat("B", 5000)
+				mock.EXPECT().
+					GetObject(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(&s3.GetObjectOutput{
+						Body:          io.NopCloser(strings.NewReader(largeContent)),
+						ContentLength: aws.Int64(int64(len(largeContent))),
+					}, nil)
+				return mock
 			},
 			args: args{
 				key: "test/get-large.txt",
@@ -172,12 +175,12 @@ func TestS3Client_GetObject(t *testing.T) {
 		},
 		{
 			name: "異常系: オブジェクトが存在しない",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						GetObjectFunc: createMockGetObjectNotFound(),
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				mock.EXPECT().
+					GetObject(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil, NewMockNotFoundError())
+				return mock
 			},
 			args: args{
 				key: "test/non-existing.txt",
@@ -187,14 +190,12 @@ func TestS3Client_GetObject(t *testing.T) {
 		},
 		{
 			name: "異常系: S3エラー",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						GetObjectFunc: func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
-							return nil, errors.New("mock s3 error")
-						},
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				mock.EXPECT().
+					GetObject(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil, errors.New("mock s3 error"))
+				return mock
 			},
 			args: args{
 				key: "test/error.txt",
@@ -206,8 +207,10 @@ func TestS3Client_GetObject(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
 			ctx := context.Background()
-			client := NewMockS3Client(tt.fields.mockAPI(), "test-bucket")
+			mockAPI := tt.setupMock(ctrl)
+			client := NewMockS3Client(mockAPI, "test-bucket")
 
 			reader, err := client.GetObject(ctx, tt.args.key)
 			if (err != nil) != tt.wantErr {
@@ -229,29 +232,25 @@ func TestS3Client_GetObject(t *testing.T) {
 	}
 }
 
-// TestS3Client_HeadObject はHeadObjectのテーブルドリブンテスト
 func TestS3Client_HeadObject(t *testing.T) {
-	type fields struct {
-		mockAPI func() S3API
-	}
 	type args struct {
 		key string
 	}
 	tests := []struct {
 		name       string
-		fields     fields
+		setupMock  func(ctrl *gomock.Controller) *mocks3.MockS3API
 		args       args
 		wantExists bool
 		wantErr    bool
 	}{
 		{
 			name: "正常系: オブジェクトが存在する",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						HeadObjectFunc: createMockHeadObjectSuccess(),
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				mock.EXPECT().
+					HeadObject(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(&s3.HeadObjectOutput{ContentLength: aws.Int64(100)}, nil)
+				return mock
 			},
 			args: args{
 				key: "test/existing.txt",
@@ -261,12 +260,12 @@ func TestS3Client_HeadObject(t *testing.T) {
 		},
 		{
 			name: "正常系: オブジェクトが存在しない",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						HeadObjectFunc: createMockHeadObjectNotFound(),
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				mock.EXPECT().
+					HeadObject(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil, NewMockNotFoundError())
+				return mock
 			},
 			args: args{
 				key: "test/non-existing.txt",
@@ -276,14 +275,12 @@ func TestS3Client_HeadObject(t *testing.T) {
 		},
 		{
 			name: "異常系: NotFound以外のS3エラー",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						HeadObjectFunc: func(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
-							return nil, errors.New("mock internal server error")
-						},
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				mock.EXPECT().
+					HeadObject(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil, errors.New("mock internal server error"))
+				return mock
 			},
 			args: args{
 				key: "test/error.txt",
@@ -295,8 +292,10 @@ func TestS3Client_HeadObject(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
 			ctx := context.Background()
-			client := NewMockS3Client(tt.fields.mockAPI(), "test-bucket")
+			mockAPI := tt.setupMock(ctrl)
+			client := NewMockS3Client(mockAPI, "test-bucket")
 
 			exists, err := client.HeadObject(ctx, tt.args.key)
 			if (err != nil) != tt.wantErr {
@@ -310,7 +309,6 @@ func TestS3Client_HeadObject(t *testing.T) {
 	}
 }
 
-// TestS3Client_Integration は統合的な動作確認テスト（Put→Head→Get）
 func TestS3Client_Integration(t *testing.T) {
 	type args struct {
 		key     string
@@ -346,22 +344,36 @@ func TestS3Client_Integration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
 			ctx := context.Background()
 
-			// モックストレージ（インメモリ）
 			storage := make(map[string]string)
+			mockAPI := mocks3.NewMockS3API(ctrl)
 
-			mockAPI := &MockS3API{
-				PutObjectFunc: func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
-					// 実際にReadして保存
+			mockAPI.EXPECT().
+				PutObject(gomock.Any(), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
 					body, err := io.ReadAll(params.Body)
 					if err != nil {
 						return nil, err
 					}
 					storage[*params.Key] = string(body)
 					return &s3.PutObjectOutput{ETag: aws.String("mock-etag")}, nil
-				},
-				GetObjectFunc: func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+				})
+
+			mockAPI.EXPECT().
+				HeadObject(gomock.Any(), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
+					content, exists := storage[*params.Key]
+					if !exists {
+						return nil, NewMockNotFoundError()
+					}
+					return &s3.HeadObjectOutput{ContentLength: aws.Int64(int64(len(content)))}, nil
+				}).Times(2)
+
+			mockAPI.EXPECT().
+				GetObject(gomock.Any(), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
 					content, exists := storage[*params.Key]
 					if !exists {
 						return nil, NewMockNotFoundError()
@@ -370,26 +382,14 @@ func TestS3Client_Integration(t *testing.T) {
 						Body:          io.NopCloser(strings.NewReader(content)),
 						ContentLength: aws.Int64(int64(len(content))),
 					}, nil
-				},
-				HeadObjectFunc: func(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
-					content, exists := storage[*params.Key]
-					if !exists {
-						return nil, NewMockNotFoundError()
-					}
-					return &s3.HeadObjectOutput{
-						ContentLength: aws.Int64(int64(len(content))),
-					}, nil
-				},
-			}
+				})
 
 			client := NewMockS3Client(mockAPI, "test-bucket")
 
-			// Put
 			if err := client.PutObject(ctx, tt.args.key, strings.NewReader(tt.args.content), int64(len(tt.args.content))); err != nil {
 				t.Fatalf("PutObject failed: %v", err)
 			}
 
-			// Head (exists)
 			exists, err := client.HeadObject(ctx, tt.args.key)
 			if err != nil {
 				t.Fatalf("HeadObject failed: %v", err)
@@ -398,7 +398,6 @@ func TestS3Client_Integration(t *testing.T) {
 				t.Error("HeadObject returned false for existing object")
 			}
 
-			// Get
 			reader, err := client.GetObject(ctx, tt.args.key)
 			if err != nil {
 				t.Fatalf("GetObject failed: %v", err)
@@ -414,7 +413,6 @@ func TestS3Client_Integration(t *testing.T) {
 				t.Errorf("content mismatch (-want +got):\n%s", diff)
 			}
 
-			// Head (not exists)
 			exists, err = client.HeadObject(ctx, "non-existing-key")
 			if err != nil {
 				t.Fatalf("HeadObject failed: %v", err)
@@ -426,7 +424,6 @@ func TestS3Client_Integration(t *testing.T) {
 	}
 }
 
-// TestS3Client_MultipleObjects は複数オブジェクトの保存と取得のテーブルドリブンテスト
 func TestS3Client_MultipleObjects(t *testing.T) {
 	type objectData struct {
 		key     string
@@ -459,21 +456,26 @@ func TestS3Client_MultipleObjects(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
 			ctx := context.Background()
 
-			// モックストレージ（インメモリ）
 			storage := make(map[string]string)
+			mockAPI := mocks3.NewMockS3API(ctrl)
 
-			mockAPI := &MockS3API{
-				PutObjectFunc: func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
+			mockAPI.EXPECT().
+				PutObject(gomock.Any(), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
 					body, err := io.ReadAll(params.Body)
 					if err != nil {
 						return nil, err
 					}
 					storage[*params.Key] = string(body)
 					return &s3.PutObjectOutput{ETag: aws.String("mock-etag")}, nil
-				},
-				GetObjectFunc: func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+				}).Times(len(tt.objects))
+
+			mockAPI.EXPECT().
+				GetObject(gomock.Any(), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
 					content, exists := storage[*params.Key]
 					if !exists {
 						return nil, NewMockNotFoundError()
@@ -482,19 +484,16 @@ func TestS3Client_MultipleObjects(t *testing.T) {
 						Body:          io.NopCloser(strings.NewReader(content)),
 						ContentLength: aws.Int64(int64(len(content))),
 					}, nil
-				},
-			}
+				}).Times(len(tt.objects))
 
 			client := NewMockS3Client(mockAPI, "test-bucket")
 
-			// 全てのオブジェクトをアップロード
 			for _, obj := range tt.objects {
 				if err := client.PutObject(ctx, obj.key, strings.NewReader(obj.content), int64(len(obj.content))); err != nil {
 					t.Fatalf("PutObject failed (key=%s): %v", obj.key, err)
 				}
 			}
 
-			// 全てのオブジェクトが取得できることを確認
 			for _, obj := range tt.objects {
 				func() {
 					reader, err := client.GetObject(ctx, obj.key)
@@ -517,7 +516,6 @@ func TestS3Client_MultipleObjects(t *testing.T) {
 	}
 }
 
-// TestNewS3Client はNewS3Clientのテスト
 func TestNewS3Client(t *testing.T) {
 	type args struct {
 		bucket string
@@ -536,7 +534,6 @@ func TestNewS3Client(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// nilのclientでも構造体は作成できる（presignClientのテストは別途実施）
 			client := NewS3Client(nil, tt.args.bucket)
 
 			if client == nil {
@@ -551,50 +548,41 @@ func TestNewS3Client(t *testing.T) {
 }
 
 func TestS3Client_HeadBucket(t *testing.T) {
-	type fields struct {
-		mockAPI func() S3API
-	}
 	tests := []struct {
-		name    string
-		fields  fields
-		wantErr error
+		name      string
+		setupMock func(ctrl *gomock.Controller) *mocks3.MockS3API
+		wantErr   error
 	}{
 		{
 			name: "正常系: バケットが存在する",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						HeadBucketFunc: func(ctx context.Context, params *s3.HeadBucketInput, optFns ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
-							return &s3.HeadBucketOutput{}, nil
-						},
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				mock.EXPECT().
+					HeadBucket(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(&s3.HeadBucketOutput{}, nil)
+				return mock
 			},
 			wantErr: nil,
 		},
 		{
 			name: "異常系: バケットが存在しない",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						HeadBucketFunc: func(ctx context.Context, params *s3.HeadBucketInput, optFns ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
-							return nil, errors.New("bucket not found")
-						},
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				mock.EXPECT().
+					HeadBucket(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil, errors.New("bucket not found"))
+				return mock
 			},
 			wantErr: errors.New("failed to head bucket: bucket not found"),
 		},
 		{
 			name: "異常系: S3接続エラー",
-			fields: fields{
-				mockAPI: func() S3API {
-					return &MockS3API{
-						HeadBucketFunc: func(ctx context.Context, params *s3.HeadBucketInput, optFns ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
-							return nil, errors.New("connection error")
-						},
-					}
-				},
+			setupMock: func(ctrl *gomock.Controller) *mocks3.MockS3API {
+				mock := mocks3.NewMockS3API(ctrl)
+				mock.EXPECT().
+					HeadBucket(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil, errors.New("connection error"))
+				return mock
 			},
 			wantErr: errors.New("failed to head bucket: connection error"),
 		},
@@ -602,8 +590,10 @@ func TestS3Client_HeadBucket(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
 			ctx := context.Background()
-			client := NewMockS3Client(tt.fields.mockAPI(), "test-bucket")
+			mockAPI := tt.setupMock(ctrl)
+			client := NewMockS3Client(mockAPI, "test-bucket")
 
 			err := client.HeadBucket(ctx)
 			if tt.wantErr != nil {
@@ -624,12 +614,12 @@ func TestS3Client_HeadBucket(t *testing.T) {
 
 func TestS3Client_ErrorTypes(t *testing.T) {
 	t.Run("PutObject returns StorageError with OperationPut", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
 		ctx := context.Background()
-		mockAPI := &MockS3API{
-			PutObjectFunc: func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
-				return nil, errors.New("mock s3 error")
-			},
-		}
+		mockAPI := mocks3.NewMockS3API(ctrl)
+		mockAPI.EXPECT().
+			PutObject(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil, errors.New("mock s3 error"))
 		client := NewMockS3Client(mockAPI, "test-bucket")
 
 		err := client.PutObject(ctx, "test/key", strings.NewReader("content"), 7)
@@ -647,12 +637,12 @@ func TestS3Client_ErrorTypes(t *testing.T) {
 	})
 
 	t.Run("GetObject returns StorageError with OperationGet", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
 		ctx := context.Background()
-		mockAPI := &MockS3API{
-			GetObjectFunc: func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
-				return nil, errors.New("mock s3 error")
-			},
-		}
+		mockAPI := mocks3.NewMockS3API(ctrl)
+		mockAPI.EXPECT().
+			GetObject(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil, errors.New("mock s3 error"))
 		client := NewMockS3Client(mockAPI, "test-bucket")
 
 		_, err := client.GetObject(ctx, "test/key")
@@ -670,12 +660,12 @@ func TestS3Client_ErrorTypes(t *testing.T) {
 	})
 
 	t.Run("HeadObject returns StorageError with OperationHead", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
 		ctx := context.Background()
-		mockAPI := &MockS3API{
-			HeadObjectFunc: func(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
-				return nil, errors.New("mock internal server error")
-			},
-		}
+		mockAPI := mocks3.NewMockS3API(ctrl)
+		mockAPI.EXPECT().
+			HeadObject(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil, errors.New("mock internal server error"))
 		client := NewMockS3Client(mockAPI, "test-bucket")
 
 		_, err := client.HeadObject(ctx, "test/key")
@@ -693,12 +683,12 @@ func TestS3Client_ErrorTypes(t *testing.T) {
 	})
 
 	t.Run("IsStorageError returns true for wrapped StorageError", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
 		ctx := context.Background()
-		mockAPI := &MockS3API{
-			PutObjectFunc: func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
-				return nil, errors.New("mock s3 error")
-			},
-		}
+		mockAPI := mocks3.NewMockS3API(ctrl)
+		mockAPI.EXPECT().
+			PutObject(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil, errors.New("mock s3 error"))
 		client := NewMockS3Client(mockAPI, "test-bucket")
 
 		err := client.PutObject(ctx, "test/key", strings.NewReader("content"), 7)

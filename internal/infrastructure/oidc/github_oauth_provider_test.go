@@ -1,4 +1,4 @@
-package oidc_test
+package oidc
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/na2na-p/cargohold/internal/domain"
-	"github.com/na2na-p/cargohold/internal/infrastructure/oidc"
 )
 
 func TestNewGitHubOAuthProvider(t *testing.T) {
@@ -52,7 +51,7 @@ func TestNewGitHubOAuthProvider(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			provider, err := oidc.NewGitHubOAuthProvider(tt.clientID, tt.clientSecret, tt.redirectURI)
+			provider, err := NewGitHubOAuthProvider(tt.clientID, tt.clientSecret, tt.redirectURI)
 
 			if tt.wantErr {
 				if err == nil {
@@ -110,7 +109,7 @@ func TestGitHubOAuthProvider_GetAuthorizationURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			provider, err := oidc.NewGitHubOAuthProvider("test-client-id", "test-client-secret", "http://localhost:8080/callback")
+			provider, err := NewGitHubOAuthProvider("test-client-id", "test-client-secret", "http://localhost:8080/callback")
 			if err != nil {
 				t.Fatalf("プロバイダー作成に失敗: %v", err)
 			}
@@ -137,7 +136,7 @@ func TestGitHubOAuthProvider_ExchangeCode(t *testing.T) {
 		name           string
 		code           string
 		serverResponse func(w http.ResponseWriter, r *http.Request)
-		want           *oidc.OAuthToken
+		want           *oauthToken
 		wantErr        bool
 	}{
 		{
@@ -159,7 +158,7 @@ func TestGitHubOAuthProvider_ExchangeCode(t *testing.T) {
 					"scope":        "read:user,repo",
 				})
 			},
-			want: &oidc.OAuthToken{
+			want: &oauthToken{
 				AccessToken: "gho_test_token_123",
 				TokenType:   "bearer",
 				Scope:       "read:user,repo",
@@ -196,7 +195,7 @@ func TestGitHubOAuthProvider_ExchangeCode(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(tt.serverResponse))
 			defer server.Close()
 
-			provider, err := oidc.NewGitHubOAuthProvider("test-client-id", "test-client-secret", "http://localhost:8080/callback")
+			provider, err := NewGitHubOAuthProvider("test-client-id", "test-client-secret", "http://localhost:8080/callback")
 			if err != nil {
 				t.Fatalf("プロバイダー作成に失敗: %v", err)
 			}
@@ -227,14 +226,14 @@ func TestGitHubOAuthProvider_ExchangeCode(t *testing.T) {
 func TestGitHubOAuthProvider_GetUserInfo(t *testing.T) {
 	tests := []struct {
 		name           string
-		token          *oidc.OAuthToken
+		token          *oauthToken
 		serverResponse func(w http.ResponseWriter, r *http.Request)
-		want           *oidc.GitHubUser
+		want           *gitHubUser
 		wantErr        bool
 	}{
 		{
 			name: "正常系: 有効なトークンでユーザー情報が取得できる",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "gho_valid_token",
 				TokenType:   "bearer",
 			},
@@ -255,7 +254,7 @@ func TestGitHubOAuthProvider_GetUserInfo(t *testing.T) {
 					"name":  "Test User",
 				})
 			},
-			want: &oidc.GitHubUser{
+			want: &gitHubUser{
 				ID:    12345,
 				Login: "testuser",
 				Name:  "Test User",
@@ -264,7 +263,7 @@ func TestGitHubOAuthProvider_GetUserInfo(t *testing.T) {
 		},
 		{
 			name: "異常系: 無効なトークンでエラーが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "invalid_token",
 				TokenType:   "bearer",
 			},
@@ -288,7 +287,7 @@ func TestGitHubOAuthProvider_GetUserInfo(t *testing.T) {
 		},
 		{
 			name: "異常系: AccessTokenが空の場合、エラーが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "",
 				TokenType:   "bearer",
 			},
@@ -305,7 +304,7 @@ func TestGitHubOAuthProvider_GetUserInfo(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(tt.serverResponse))
 			defer server.Close()
 
-			provider, err := oidc.NewGitHubOAuthProvider("test-client-id", "test-client-secret", "http://localhost:8080/callback")
+			provider, err := NewGitHubOAuthProvider("test-client-id", "test-client-secret", "http://localhost:8080/callback")
 			if err != nil {
 				t.Fatalf("プロバイダー作成に失敗: %v", err)
 			}
@@ -336,7 +335,7 @@ func TestGitHubOAuthProvider_GetUserInfo(t *testing.T) {
 func TestGitHubOAuthProvider_CanAccessRepository(t *testing.T) {
 	tests := []struct {
 		name           string
-		token          *oidc.OAuthToken
+		token          *oauthToken
 		repo           *domain.RepositoryIdentifier
 		serverResponse func(w http.ResponseWriter, r *http.Request)
 		want           bool
@@ -344,7 +343,7 @@ func TestGitHubOAuthProvider_CanAccessRepository(t *testing.T) {
 	}{
 		{
 			name: "正常系: アクセス可能なリポジトリの場合、trueが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "gho_valid_token",
 				TokenType:   "bearer",
 			},
@@ -366,7 +365,7 @@ func TestGitHubOAuthProvider_CanAccessRepository(t *testing.T) {
 		},
 		{
 			name: "正常系: アクセス不可能なリポジトリの場合、falseが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "gho_valid_token",
 				TokenType:   "bearer",
 			},
@@ -392,7 +391,7 @@ func TestGitHubOAuthProvider_CanAccessRepository(t *testing.T) {
 		},
 		{
 			name: "異常系: リポジトリがnilの場合、エラーが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "gho_valid_token",
 				TokenType:   "bearer",
 			},
@@ -405,7 +404,7 @@ func TestGitHubOAuthProvider_CanAccessRepository(t *testing.T) {
 		},
 		{
 			name: "異常系: AccessTokenが空の場合、エラーが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "",
 				TokenType:   "bearer",
 			},
@@ -418,7 +417,7 @@ func TestGitHubOAuthProvider_CanAccessRepository(t *testing.T) {
 		},
 		{
 			name: "異常系: サーバーエラーの場合、エラーが返る",
-			token: &oidc.OAuthToken{
+			token: &oauthToken{
 				AccessToken: "gho_valid_token",
 				TokenType:   "bearer",
 			},
@@ -436,7 +435,7 @@ func TestGitHubOAuthProvider_CanAccessRepository(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(tt.serverResponse))
 			defer server.Close()
 
-			provider, err := oidc.NewGitHubOAuthProvider("test-client-id", "test-client-secret", "http://localhost:8080/callback")
+			provider, err := NewGitHubOAuthProvider("test-client-id", "test-client-secret", "http://localhost:8080/callback")
 			if err != nil {
 				t.Fatalf("プロバイダー作成に失敗: %v", err)
 			}
@@ -490,7 +489,7 @@ func mustNewRepositoryIdentifier(t *testing.T, fullName string) *domain.Reposito
 
 // TestOAuthToken_Fields はOAuthTokenの各フィールドが正しく設定されているかをテストする
 func TestOAuthToken_Fields(t *testing.T) {
-	token := &oidc.OAuthToken{
+	token := &oauthToken{
 		AccessToken: "test-access-token",
 		TokenType:   "bearer",
 		Scope:       "read:user",
@@ -509,7 +508,7 @@ func TestOAuthToken_Fields(t *testing.T) {
 
 // TestGitHubUser_Fields はGitHubUserの各フィールドが正しく設定されているかをテストする
 func TestGitHubUser_Fields(t *testing.T) {
-	user := &oidc.GitHubUser{
+	user := &gitHubUser{
 		ID:    12345,
 		Login: "testuser",
 		Name:  "Test User",

@@ -85,7 +85,7 @@ func TestOAuthStateStore_GetAndDeleteState(t *testing.T) {
 		wantErr   bool
 	}{
 		{
-			name: "正常系: stateデータが取得され、削除される",
+			name: "正常系: stateデータがアトミックに取得・削除される",
 			setupMock: func(mock redismock.ClientMock, args args) {
 				dto := &oauthStateDTO{
 					Repository:  "owner/repo",
@@ -93,8 +93,7 @@ func TestOAuthStateStore_GetAndDeleteState(t *testing.T) {
 				}
 				key := redis.OIDCStateKey(args.state)
 				jsonBytes, _ := json.Marshal(dto)
-				mock.ExpectGet(key).SetVal(string(jsonBytes))
-				mock.ExpectDel(key).SetVal(1)
+				mock.ExpectGetDel(key).SetVal(string(jsonBytes))
 			},
 			args: args{
 				ctx:   context.Background(),
@@ -107,7 +106,7 @@ func TestOAuthStateStore_GetAndDeleteState(t *testing.T) {
 			name: "異常系: 存在しないstateを取得するとエラー",
 			setupMock: func(mock redismock.ClientMock, args args) {
 				key := redis.OIDCStateKey(args.state)
-				mock.ExpectGet(key).RedisNil()
+				mock.ExpectGetDel(key).RedisNil()
 			},
 			args: args{
 				ctx:   context.Background(),

@@ -62,7 +62,7 @@ func (e *gitHubTokenExchanger) GetAuthorizationURL(state string, scopes []string
 	return fmt.Sprintf("%s?%s", GitHubOAuthAuthorizeURL, params.Encode())
 }
 
-func (e *gitHubTokenExchanger) ExchangeCode(ctx context.Context, code string) (*OAuthToken, error) {
+func (e *gitHubTokenExchanger) ExchangeCode(ctx context.Context, code string) (*oauthToken, error) {
 	data := url.Values{}
 	data.Set("client_id", e.clientID)
 	data.Set("client_secret", e.clientSecret)
@@ -112,7 +112,7 @@ func (e *gitHubTokenExchanger) ExchangeCode(ctx context.Context, code string) (*
 		return nil, fmt.Errorf("トークン取得エラー: %s - %s", tokenResp.Error, tokenResp.ErrorDescription)
 	}
 
-	return &OAuthToken{
+	return &oauthToken{
 		AccessToken: tokenResp.AccessToken,
 		TokenType:   tokenResp.TokenType,
 		Scope:       tokenResp.Scope,

@@ -20,13 +20,13 @@ type SessionData struct {
 }
 
 type SessionAuthUseCase struct {
-	redisClient  domain.CacheClient
-	keyGenerator domain.CacheKeyGenerator
+	redisClient  CacheClient
+	keyGenerator CacheKeyGenerator
 }
 
 func NewSessionAuthUseCase(
-	redisClient domain.CacheClient,
-	keyGenerator domain.CacheKeyGenerator,
+	redisClient CacheClient,
+	keyGenerator CacheKeyGenerator,
 ) *SessionAuthUseCase {
 	return &SessionAuthUseCase{
 		redisClient:  redisClient,

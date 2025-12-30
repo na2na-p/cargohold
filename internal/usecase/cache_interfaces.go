@@ -1,5 +1,5 @@
-//go:generate mockgen -source=$GOFILE -destination=../../tests/domain/mock_cache_repository.go -package=domain
-package domain
+//go:generate mockgen -source=$GOFILE -destination=../../tests/usecase/mock_cache_interfaces.go -package=usecase
+package usecase
 
 import (
 	"context"

@@ -25,7 +25,7 @@ func (c *gitHubRepositoryChecker) SetAPIEndpoint(endpoint string) {
 	c.apiEndpoint = endpoint
 }
 
-func (c *gitHubRepositoryChecker) CanAccessRepository(ctx context.Context, token *OAuthToken, repo *domain.RepositoryIdentifier) (bool, error) {
+func (c *gitHubRepositoryChecker) CanAccessRepository(ctx context.Context, token *oauthToken, repo *domain.RepositoryIdentifier) (bool, error) {
 	if token == nil {
 		return false, fmt.Errorf("token is required")
 	}

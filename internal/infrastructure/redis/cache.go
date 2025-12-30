@@ -81,3 +81,19 @@ func (c *RedisClient) GetJSON(ctx context.Context, key string, dest interface{})
 	}
 	return nil
 }
+
+func (c *RedisClient) GetDelJSON(ctx context.Context, key string, dest interface{}) error {
+	val, err := c.client.GetDel(ctx, key).Result()
+	if err == redis.Nil {
+		return ErrCacheMiss
+	}
+	if err != nil {
+		return fmt.Errorf("キーの取得と削除に失敗しました: %w", err)
+	}
+
+	err = json.Unmarshal([]byte(val), dest)
+	if err != nil {
+		return fmt.Errorf("JSONデシリアライズに失敗しました: %w", err)
+	}
+	return nil
+}
