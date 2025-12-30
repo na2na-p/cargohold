@@ -190,7 +190,29 @@ func run() error {
 
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
-	e.Use(middleware.Logger())
+	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogStatus:   true,
+		LogURI:      true,
+		LogMethod:   true,
+		LogLatency:  true,
+		LogError:    true,
+		HandleError: true,
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			attrs := []slog.Attr{
+				slog.String("method", v.Method),
+				slog.String("uri", v.URI),
+				slog.Int("status", v.Status),
+				slog.Duration("latency", v.Latency),
+			}
+			if v.Error != nil {
+				attrs = append(attrs, slog.String("error", v.Error.Error()))
+				slog.LogAttrs(c.Request().Context(), slog.LevelError, "REQUEST", attrs...)
+			} else {
+				slog.LogAttrs(c.Request().Context(), slog.LevelInfo, "REQUEST", attrs...)
+			}
+			return nil
+		},
+	}))
 
 	e.GET("/healthz", handler.HealthHandler)
 
