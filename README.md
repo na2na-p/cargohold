@@ -41,40 +41,36 @@ git lfs version
 
 ## マイグレーションツールのインストール
 
-cargohold では、データベーススキーマのバージョン管理に [golang-migrate](https://github.com/golang-migrate/migrate) を使用しています。
+cargohold では、データベーススキーマのバージョン管理に [goose](https://github.com/pressly/goose) を使用しています。
 
 ### CLI ツールのインストール
 
 #### macOS
 
 ```bash
-brew install golang-migrate
+brew install goose
 ```
 
-#### Linux
+#### Linux / Go install
 
 ```bash
-curl -L https://github.com/golang-migrate/migrate/releases/latest/download/migrate.linux-amd64.tar.gz | tar xvz
-sudo mv migrate /usr/local/bin/migrate
-```
-
-#### Go install
-
-```bash
-go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+go install github.com/pressly/goose/v3/cmd/goose@latest
 ```
 
 ### マイグレーションの実行
 
 ```bash
 # マイグレーションを適用
-./scripts/migrate.sh up
+./scripts/migrate-goose.sh up
 
 # マイグレーションを巻き戻し
-./scripts/migrate.sh down
+./scripts/migrate-goose.sh down
+
+# マイグレーションのステータスを確認
+./scripts/migrate-goose.sh status
 
 # 現在のマイグレーションバージョンを確認
-./scripts/migrate.sh version
+./scripts/migrate-goose.sh version
 ```
 
 ## 環境構築手順
