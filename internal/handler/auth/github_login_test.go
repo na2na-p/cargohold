@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/labstack/echo/v4"
 	"github.com/na2na-p/cargohold/internal/handler/auth"
+	"github.com/na2na-p/cargohold/internal/handler/middleware"
 	mockauth "github.com/na2na-p/cargohold/tests/handler/auth"
 	"go.uber.org/mock/gomock"
 )
@@ -25,6 +26,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 		setupMock      func(ctrl *gomock.Controller) *mockauth.MockGitHubOAuthUseCaseInterface
 		expectedStatus int
 		expectedURL    string
+		wantAppError   bool
 	}{
 		{
 			name: "正常系: GitHub認証URLへリダイレクトされる",
@@ -42,6 +44,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusFound,
 			expectedURL:    "https://github.com/login/oauth/authorize?client_id=test&state=abc123",
+			wantAppError:   false,
 		},
 		{
 			name: "正常系: AllowedHostsが設定されていて許可ホストの場合はリダイレクトされる",
@@ -62,6 +65,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusFound,
 			expectedURL:    "https://github.com/login/oauth/authorize?client_id=test&state=abc123",
+			wantAppError:   false,
 		},
 		{
 			name: "異常系: AllowedHostsが設定されていて許可されていないホストの場合はBadRequestを返す",
@@ -78,6 +82,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedURL:    "",
+			wantAppError:   true,
 		},
 		{
 			name: "異常系: repositoryパラメータが空の場合はBadRequestを返す",
@@ -91,6 +96,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedURL:    "",
+			wantAppError:   true,
 		},
 		{
 			name: "異常系: repositoryパラメータの形式が不正な場合はBadRequestを返す",
@@ -104,6 +110,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedURL:    "",
+			wantAppError:   true,
 		},
 		{
 			name: "異常系: owner/repo形式だがownerが空の場合はBadRequestを返す",
@@ -117,6 +124,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedURL:    "",
+			wantAppError:   true,
 		},
 		{
 			name: "異常系: owner/repo形式だがrepoが空の場合はBadRequestを返す",
@@ -130,6 +138,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedURL:    "",
+			wantAppError:   true,
 		},
 		{
 			name: "異常系: UseCaseでエラーが発生した場合はInternalServerErrorを返す",
@@ -147,6 +156,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedURL:    "",
+			wantAppError:   true,
 		},
 	}
 
@@ -172,12 +182,25 @@ func TestGitHubLoginHandler(t *testing.T) {
 			handler := auth.GitHubLoginHandler(mockUC, tt.cfg)
 
 			err := handler(c)
-			if err != nil {
-				t.Fatalf("handler returned error: %v", err)
-			}
 
-			if rec.Code != tt.expectedStatus {
-				t.Errorf("expected status %d, got %d", tt.expectedStatus, rec.Code)
+			if tt.wantAppError {
+				if err == nil {
+					t.Fatal("expected AppError, got nil")
+				}
+				appErr, ok := err.(*middleware.AppError)
+				if !ok {
+					t.Fatalf("expected *middleware.AppError, got %T", err)
+				}
+				if appErr.StatusCode != tt.expectedStatus {
+					t.Errorf("expected status %d, got %d", tt.expectedStatus, appErr.StatusCode)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("handler returned error: %v", err)
+				}
+				if rec.Code != tt.expectedStatus {
+					t.Errorf("expected status %d, got %d", tt.expectedStatus, rec.Code)
+				}
 			}
 
 			if tt.expectedURL != "" {

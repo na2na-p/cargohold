@@ -5,11 +5,13 @@
 # cargohold サーバーを使用するための Git LFS 初期設定を行います。
 #
 # 使い方:
-#   ./git-lfs-setup.sh [cargohold_url]
+#   ./git-lfs-setup.sh <owner> <repo> [cargohold_base_url]
 #
 # 例:
-#   ./git-lfs-setup.sh https://cargohold.example.com/info/lfs
-#   ./git-lfs-setup.sh  # デフォルト URL を使用
+#   ./git-lfs-setup.sh myorg myproject https://cargohold.example.com
+#   ./git-lfs-setup.sh myorg myproject  # デフォルト Base URL を使用
+#
+# 重要: cargohold では URL にリポジトリ情報（owner/repo）を含める必要があります
 
 set -e
 
@@ -17,11 +19,24 @@ set -e
 # 設定
 # ==============================================
 
-# デフォルトの cargohold サーバー URL
-DEFAULT_LFS_URL="https://cargohold.example.com/info/lfs"
+# 引数チェック
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 <owner> <repo> [cargohold_base_url]"
+    echo "Example: $0 myorg myproject https://cargohold.example.com"
+    exit 1
+fi
 
-# 引数から URL を取得、なければデフォルトを使用
-LFS_URL="${1:-$DEFAULT_LFS_URL}"
+OWNER="$1"
+REPO="$2"
+
+# デフォルトの cargohold サーバー Base URL
+DEFAULT_BASE_URL="https://cargohold.example.com"
+
+# 引数から Base URL を取得、なければデフォルトを使用
+BASE_URL="${3:-$DEFAULT_BASE_URL}"
+
+# LFS URL を構築（リポジトリ固有）
+LFS_URL="${BASE_URL}/${OWNER}/${REPO}/info/lfs"
 
 # カラー出力
 RED='\033[0;31m'
@@ -187,15 +202,11 @@ else
 fi
 
 # ==============================================
-# ベースURL導出
+# 認証用ベースURL（リポジトリ固有ではない）
 # ==============================================
-if [[ "$LFS_URL" =~ ^(.+)/info/lfs(/.*)?$ ]]; then
-    CARGOHOLD_SERVER="${BASH_REMATCH[1]}"
-else
-    warn "LFS_URL が期待されるパターン (/info/lfs) で終わっていません: $LFS_URL"
-    warn "認証URLが正しくない可能性があります。"
-    CARGOHOLD_SERVER="$LFS_URL"
-fi
+# 認証エンドポイント（/auth/github/login 等）はリポジトリ固有ではないため、
+# LFS_URL からではなく BASE_URL を直接使用します。
+CARGOHOLD_SERVER="$BASE_URL"
 
 # ==============================================
 # 認証設定
@@ -206,16 +217,15 @@ info "認証設定について:"
 echo ""
 echo "  cargohold は以下の認証方式をサポートしています："
 echo ""
-echo "  1. Basic 認証"
-echo "     git config --global credential.helper store"
-echo "     # または"
-echo "     git config --global credential.helper 'cache --timeout=3600'"
+echo "  1. GitHub OAuth（ブラウザ認証・セッションベース）"
+echo "     ブラウザで以下のURLにアクセスし、GitHub アカウントで認証します："
+echo "     ${CARGOHOLD_SERVER}/auth/github/login?repository=${OWNER}/${REPO}"
+echo "     認証後、セッション Cookie が設定され、以降のリクエストで使用されます。"
 echo ""
-echo "  2. Google Workspace OIDC（ブラウザ認証）"
-echo "     ブラウザで ${CARGOHOLD_SERVER}/auth/google/login にアクセス"
-echo ""
-echo "  3. GitHub OIDC（CI/CD 向け）"
-echo "     GitHub Actions から自動的に認証されます。"
+echo "  2. GitHub OIDC（CI/CD 向け）"
+echo "     GitHub Actions から OIDC トークンを取得し、"
+echo "     Authorization: Bearer <JWT_TOKEN> ヘッダーで認証します。"
+echo "     詳細は cargohold のドキュメントを参照してください。"
 echo ""
 
 # ==============================================

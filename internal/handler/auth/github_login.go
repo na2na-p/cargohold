@@ -3,12 +3,14 @@ package auth
 
 import (
 	"context"
-	"log/slog"
+	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/na2na-p/cargohold/internal/domain"
+	"github.com/na2na-p/cargohold/internal/handler/middleware"
 )
 
 type GitHubOAuthUseCaseInterface interface {
@@ -31,45 +33,43 @@ type GitHubLoginHandlerConfig struct {
 
 func GitHubLoginHandler(githubOAuthUC GitHubOAuthUseCaseInterface, cfg GitHubLoginHandlerConfig) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		ctx := c.Request().Context()
-
 		host := c.Request().Host
 		if !IsHostAllowed(host, cfg.AllowedHosts) {
-			slog.WarnContext(ctx, "Host header validation failed",
-				slog.String("host", host),
-				slog.Any("allowed_hosts", cfg.AllowedHosts),
+			return middleware.NewAppError(
+				http.StatusBadRequest,
+				"許可されていないホストからのリクエストです",
+				fmt.Errorf("host %q is not in allowed list %v", host, cfg.AllowedHosts),
 			)
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error": "許可されていないホストからのリクエストです",
-			})
 		}
 
 		repositoryParam := c.QueryParam("repository")
 		if repositoryParam == "" {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error": "repositoryパラメータが指定されていません",
-			})
+			return middleware.NewAppError(
+				http.StatusBadRequest,
+				"repositoryパラメータが指定されていません",
+				errors.New("repository parameter is empty"),
+			)
 		}
 
 		repository, err := domain.NewRepositoryIdentifier(repositoryParam)
 		if err != nil {
-			slog.WarnContext(ctx, "Repository validation failed",
-				slog.String("repository_param", repositoryParam),
-				slog.String("error", err.Error()),
+			return middleware.NewAppError(
+				http.StatusBadRequest,
+				"repositoryパラメータの形式が不正です",
+				fmt.Errorf("invalid repository %q: %w", repositoryParam, err),
 			)
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error": "repositoryパラメータの形式が不正です",
-			})
 		}
 
 		scheme := ResolveScheme(c, cfg.TrustProxy)
 		redirectURI := scheme + "://" + host + "/auth/github/callback"
 
-		authURL, err := githubOAuthUC.StartAuthentication(ctx, repository, redirectURI)
+		authURL, err := githubOAuthUC.StartAuthentication(c.Request().Context(), repository, redirectURI)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "認証URLの生成に失敗しました",
-			})
+			return middleware.NewAppError(
+				http.StatusInternalServerError,
+				"認証URLの生成に失敗しました",
+				err,
+			)
 		}
 
 		return c.Redirect(http.StatusFound, authURL)

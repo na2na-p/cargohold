@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/na2na-p/cargohold/internal/handler/response"
@@ -74,6 +75,18 @@ func CustomHTTPErrorHandler(err error, c echo.Context) {
 		slog.Error("サーバーエラー", logAttrs...)
 	} else if statusCode >= 400 {
 		slog.Warn("クライアントエラー", logAttrs...)
+	}
+
+	if strings.HasPrefix(c.Request().URL.Path, "/auth/") {
+		if jsonErr := c.JSON(statusCode, map[string]string{"error": message}); jsonErr != nil {
+			slog.Error("レスポンスの送信に失敗しました",
+				"request_id", requestID,
+				"status_code", statusCode,
+				"message", message,
+				"error", jsonErr,
+			)
+		}
+		return
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, response.GitLFSContentType)

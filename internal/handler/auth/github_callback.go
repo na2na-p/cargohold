@@ -6,6 +6,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/na2na-p/cargohold/internal/handler/common"
+	"github.com/na2na-p/cargohold/internal/handler/middleware"
 	"github.com/na2na-p/cargohold/internal/usecase"
 )
 
@@ -15,21 +16,25 @@ func GitHubCallbackHandler(githubOAuthUC GitHubOAuthUseCaseInterface) echo.Handl
 
 		code := c.QueryParam("code")
 		if code == "" {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error": "codeパラメータが指定されていません",
-			})
+			return middleware.NewAppError(
+				http.StatusBadRequest,
+				"codeパラメータが指定されていません",
+				errors.New("code parameter is empty"),
+			)
 		}
 
 		state := c.QueryParam("state")
 		if state == "" {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error": "stateパラメータが指定されていません",
-			})
+			return middleware.NewAppError(
+				http.StatusBadRequest,
+				"stateパラメータが指定されていません",
+				errors.New("state parameter is empty"),
+			)
 		}
 
 		sessionID, err := githubOAuthUC.HandleCallback(ctx, code, state)
 		if err != nil {
-			return handleCallbackError(c, err)
+			return handleCallbackError(err)
 		}
 
 		cookie := &http.Cookie{
@@ -47,32 +52,42 @@ func GitHubCallbackHandler(githubOAuthUC GitHubOAuthUseCaseInterface) echo.Handl
 	}
 }
 
-func handleCallbackError(c echo.Context, err error) error {
+func handleCallbackError(err error) error {
 	if errors.Is(err, usecase.ErrInvalidState) {
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "認証セッションが無効または期限切れです",
-		})
+		return middleware.NewAppError(
+			http.StatusUnauthorized,
+			"認証セッションが無効または期限切れです",
+			err,
+		)
 	}
 
 	if errors.Is(err, usecase.ErrRepositoryAccessDenied) {
-		return c.JSON(http.StatusForbidden, map[string]string{
-			"error": "リポジトリへのアクセス権がありません",
-		})
+		return middleware.NewAppError(
+			http.StatusForbidden,
+			"リポジトリへのアクセス権がありません",
+			err,
+		)
 	}
 
 	if errors.Is(err, usecase.ErrCodeExchangeFailed) {
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "認証に失敗しました",
-		})
+		return middleware.NewAppError(
+			http.StatusUnauthorized,
+			"認証に失敗しました",
+			err,
+		)
 	}
 
 	if errors.Is(err, usecase.ErrUserInfoFailed) {
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "ユーザー情報の取得に失敗しました",
-		})
+		return middleware.NewAppError(
+			http.StatusUnauthorized,
+			"ユーザー情報の取得に失敗しました",
+			err,
+		)
 	}
 
-	return c.JSON(http.StatusInternalServerError, map[string]string{
-		"error": "認証処理に失敗しました",
-	})
+	return middleware.NewAppError(
+		http.StatusInternalServerError,
+		"認証処理に失敗しました",
+		err,
+	)
 }
