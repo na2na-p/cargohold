@@ -37,6 +37,10 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
+      {{- with .Values.migration.initContainers }}
+      initContainers:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: migration
           image: "{{ .Values.migration.image.repository }}:{{ .Values.migration.image.tag | default .Chart.AppVersion }}"
@@ -74,6 +78,14 @@ spec:
                 - ALL
           resources:
             {{ toYaml .Values.migration.resources | nindent 12 }}
+          {{- with .Values.migration.extraVolumeMounts }}
+          volumeMounts:
+            {{ toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.migration.extraVolumes }}
+      volumes:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.deployment.pod.nodeSelector }}
       nodeSelector:
         {{ toYaml . | nindent 8 }}

@@ -12,7 +12,6 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
         {{- with .Values.deployment.pod.annotations }}
         {{ toYaml . | nindent 8 }}
@@ -33,6 +32,10 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -56,11 +59,36 @@ spec:
           resources:
             {{ toYaml .Values.deployment.container.resources | nindent 12 }}
           env:
+            # Server
+            - name: SERVER_TRUST_PROXY
+              value: {{ .Values.server.trustProxy | quote }}
+            {{- if .Values.server.trustedProxyCIDRs }}
+            - name: SERVER_TRUSTED_PROXY_CIDRS
+              value: {{ join "," .Values.server.trustedProxyCIDRs | quote }}
+            {{- end }}
+            - name: SERVER_PROXY_TIMEOUT
+              value: {{ .Values.server.proxyTimeout | quote }}
+            # Database
+            - name: DATABASE_HOST
+              value: {{ .Values.postgres.host | quote }}
+            - name: DATABASE_PORT
+              value: {{ .Values.postgres.port | quote }}
+            - name: DATABASE_USER
+              value: {{ .Values.postgres.user | quote }}
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.postgres.existingSecret | default (include "cargohold.fullname" .) }}
                   key: {{ .Values.postgres.existingSecretKey | default "database-password" }}
+            - name: DATABASE_DBNAME
+              value: {{ .Values.postgres.database | quote }}
+            - name: DATABASE_SSLMODE
+              value: {{ .Values.postgres.sslMode | quote }}
+            # Redis
+            - name: REDIS_HOST
+              value: {{ .Values.redis.host | quote }}
+            - name: REDIS_PORT
+              value: {{ .Values.redis.port | quote }}
             {{- if .Values.redis.auth.enabled }}
             - name: REDIS_PASSWORD
               valueFrom:
@@ -68,6 +96,11 @@ spec:
                   name: {{ .Values.redis.existingSecret | default (include "cargohold.fullname" .) }}
                   key: {{ .Values.redis.existingSecretKey | default "redis-password" }}
             {{- end }}
+            - name: REDIS_DB
+              value: {{ .Values.redis.db | quote }}
+            # S3
+            - name: S3_ENDPOINT
+              value: {{ .Values.s3.endpoint | quote }}
             - name: S3_ACCESSKEYID
               valueFrom:
                 secretKeyRef:
@@ -78,38 +111,58 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.s3.existingSecret | default (include "cargohold.fullname" .) }}
                   key: {{ .Values.s3.existingSecretKeys.secretAccessKey | default "s3-secret-access-key" }}
-            {{- if .Values.cargohold.oauth.github.enabled }}
+            - name: S3_BUCKETNAME
+              value: {{ .Values.s3.bucketName | quote }}
+            - name: S3_REGION
+              value: {{ .Values.s3.region | quote }}
+            # OIDC
+            - name: OIDC_GITHUB_ENABLED
+              value: {{ .Values.oidc.github.enabled | quote }}
+            {{- if .Values.oidc.github.audience }}
+            - name: OIDC_GITHUB_AUDIENCE
+              value: {{ .Values.oidc.github.audience | quote }}
+            {{- end }}
+            {{- if .Values.oidc.github.jwksUrl }}
+            - name: OIDC_GITHUB_JWKSURL
+              value: {{ .Values.oidc.github.jwksUrl | quote }}
+            {{- end }}
+            # OAuth
+            - name: OAUTH_GITHUB_ENABLED
+              value: {{ .Values.oauth.github.enabled | quote }}
+            {{- if .Values.oauth.github.enabled }}
             - name: GITHUB_OAUTH_CLIENT_ID
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.cargohold.oauth.github.existingSecret | default (include "cargohold.fullname" .) }}
-                  key: {{ .Values.cargohold.oauth.github.existingSecretKeys.clientId | default "github-oauth-client-id" }}
+                  name: {{ .Values.oauth.github.existingSecret | default (include "cargohold.fullname" .) }}
+                  key: {{ .Values.oauth.github.existingSecretKeys.clientId | default "github-oauth-client-id" }}
             - name: GITHUB_OAUTH_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.cargohold.oauth.github.existingSecret | default (include "cargohold.fullname" .) }}
-                  key: {{ .Values.cargohold.oauth.github.existingSecretKeys.clientSecret | default "github-oauth-client-secret" }}
+                  name: {{ .Values.oauth.github.existingSecret | default (include "cargohold.fullname" .) }}
+                  key: {{ .Values.oauth.github.existingSecretKeys.clientSecret | default "github-oauth-client-secret" }}
+            {{- if .Values.oauth.github.allowedHosts }}
+            - name: OAUTH_GITHUB_ALLOWED_HOSTS
+              value: {{ join "," .Values.oauth.github.allowedHosts | quote }}
+            {{- end }}
+            {{- if .Values.oauth.github.allowedRedirectUris }}
+            - name: OAUTH_GITHUB_ALLOWED_REDIRECT_URIS
+              value: {{ join "," .Values.oauth.github.allowedRedirectUris | quote }}
+            {{- end }}
             {{- end }}
             {{- with .Values.extraEnv }}
             {{ toYaml . | nindent 12 }}
             {{- end }}
+          {{- with .Values.extraVolumeMounts }}
           volumeMounts:
-            - name: config
-              mountPath: /app/config
-              readOnly: true
-            {{- with .Values.extraVolumeMounts }}
             {{ toYaml . | nindent 12 }}
-            {{- end }}
+          {{- end }}
         {{- with .Values.extraContainers }}
         {{ toYaml . | nindent 8 }}
         {{- end }}
+      {{- with .Values.extraVolumes }}
       volumes:
-        - name: config
-          configMap:
-            name: {{ include "cargohold.fullname" . }}
-        {{- with .Values.extraVolumes }}
         {{ toYaml . | nindent 8 }}
-        {{- end }}
+      {{- end }}
       {{- with .Values.deployment.pod.nodeSelector }}
       nodeSelector:
         {{ toYaml . | nindent 8 }}
