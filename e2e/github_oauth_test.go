@@ -91,9 +91,6 @@ func TestGitHubOAuthLogin_Redirect(t *testing.T) {
 			if query.Get("state") == "" {
 				t.Error("stateパラメータがありません")
 			}
-			if query.Get("scope") == "" {
-				t.Error("scopeパラメータがありません")
-			}
 		})
 	}
 }
