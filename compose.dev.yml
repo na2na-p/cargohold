@@ -67,11 +67,16 @@ services:
 
   cargohold:
     environment:
+      DATABASE_SSLMODE: disable
+      OIDC_GITHUB_ENABLED: "true"
       OIDC_GITHUB_AUDIENCE: cargohold
       OIDC_GITHUB_JWKSURL: http://jwks-mock/.well-known/jwks
+      OAUTH_GITHUB_ENABLED: "true"
+      GITHUB_OAUTH_CLIENT_ID: test-client-id
+      GITHUB_OAUTH_CLIENT_SECRET: test-client-secret
+      OAUTH_GITHUB_ALLOWED_HOSTS: "localhost:8080,cargohold:8080"
+      OAUTH_GITHUB_ALLOWED_REDIRECT_URIS: "http://localhost:8080/auth/github/callback,http://cargohold:8080/auth/github/callback"
       AUTH_USERS_TESTUSER: ${AUTH_TESTUSER_PASSWORD:-testuser_dev_password}
-    volumes:
-      - ./config.e2e.yaml:/app/config/config.yaml:ro
     depends_on:
       migrate:
         condition: service_completed_successfully
