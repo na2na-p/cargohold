@@ -27,14 +27,18 @@ services:
     restart: unless-stopped
 
   migrate:
-    image: migrate/migrate:v4.19.1
+    build:
+      context: .
+      dockerfile: Dockerfile.migration
     container_name: cargohold-migrate
-    volumes:
-      - ./migrations:/migrations:ro
-    command:
-      - "-path=/migrations"
-      - "-database=postgres://cargohold:${POSTGRES_PASSWORD:-cargohold_dev_password}@postgres:5432/cargohold?sslmode=disable"
-      - "up"
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: cargohold
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-cargohold_dev_password}
+      DATABASE_DBNAME: cargohold
+      DATABASE_SSLMODE: disable
+    command: ["up"]
     depends_on:
       postgres:
         condition: service_healthy
