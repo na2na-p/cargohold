@@ -1,7 +1,6 @@
 suite: Deployment tests
 templates:
   - templates/deployment.yaml
-  - templates/configmap.yaml
   - templates/secret.yaml
 tests:
   - it: creates Deployment with default values
@@ -73,16 +72,6 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].readinessProbe.httpGet.path
           value: /readyz
-
-  - it: mounts ConfigMap
-    template: templates/deployment.yaml
-    asserts:
-      - contains:
-          path: spec.template.spec.volumes
-          content:
-            name: config
-            configMap:
-              name: RELEASE-NAME-cargohold
 
   - it: sets Secret environment variables
     template: templates/deployment.yaml
@@ -222,13 +211,12 @@ tests:
   - it: sets GitHub OAuth env vars when oauth is enabled
     template: templates/deployment.yaml
     set:
-      cargohold:
-        oauth:
-          github:
-            enabled: true
-            existingSecretKeys:
-              clientId: "github-oauth-client-id"
-              clientSecret: "github-oauth-client-secret"
+      oauth:
+        github:
+          enabled: true
+          existingSecretKeys:
+            clientId: "github-oauth-client-id"
+            clientSecret: "github-oauth-client-secret"
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
@@ -250,14 +238,13 @@ tests:
   - it: uses existingSecret for GitHub OAuth when specified
     template: templates/deployment.yaml
     set:
-      cargohold:
-        oauth:
-          github:
-            enabled: true
-            existingSecret: my-github-oauth-secret
-            existingSecretKeys:
-              clientId: "my-client-id-key"
-              clientSecret: "my-client-secret-key"
+      oauth:
+        github:
+          enabled: true
+          existingSecret: my-github-oauth-secret
+          existingSecretKeys:
+            clientId: "my-client-id-key"
+            clientSecret: "my-client-secret-key"
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
