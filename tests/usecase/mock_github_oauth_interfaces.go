@@ -74,17 +74,17 @@ func (mr *MockGitHubOAuthProviderInterfaceMockRecorder) ExchangeCode(ctx, code a
 }
 
 // GetAuthorizationURL mocks base method.
-func (m *MockGitHubOAuthProviderInterface) GetAuthorizationURL(state string, scopes []string) string {
+func (m *MockGitHubOAuthProviderInterface) GetAuthorizationURL(state string) string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAuthorizationURL", state, scopes)
+	ret := m.ctrl.Call(m, "GetAuthorizationURL", state)
 	ret0, _ := ret[0].(string)
 	return ret0
 }
 
 // GetAuthorizationURL indicates an expected call of GetAuthorizationURL.
-func (mr *MockGitHubOAuthProviderInterfaceMockRecorder) GetAuthorizationURL(state, scopes any) *gomock.Call {
+func (mr *MockGitHubOAuthProviderInterfaceMockRecorder) GetAuthorizationURL(state any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorizationURL", reflect.TypeOf((*MockGitHubOAuthProviderInterface)(nil).GetAuthorizationURL), state, scopes)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorizationURL", reflect.TypeOf((*MockGitHubOAuthProviderInterface)(nil).GetAuthorizationURL), state)
 }
 
 // GetUserInfo mocks base method.

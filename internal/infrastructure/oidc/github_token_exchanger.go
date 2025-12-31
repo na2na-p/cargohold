@@ -49,15 +49,11 @@ func (e *gitHubTokenExchanger) SetTokenEndpoint(endpoint string) {
 	e.tokenEndpoint = endpoint
 }
 
-func (e *gitHubTokenExchanger) GetAuthorizationURL(state string, scopes []string) string {
+func (e *gitHubTokenExchanger) GetAuthorizationURL(state string) string {
 	params := url.Values{}
 	params.Set("client_id", e.clientID)
 	params.Set("redirect_uri", e.redirectURI)
 	params.Set("state", state)
-
-	if len(scopes) > 0 {
-		params.Set("scope", strings.Join(scopes, " "))
-	}
 
 	return fmt.Sprintf("%s?%s", GitHubOAuthAuthorizeURL, params.Encode())
 }

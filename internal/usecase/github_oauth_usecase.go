@@ -42,8 +42,6 @@ func NewGitHubOAuthUseCase(
 	}, nil
 }
 
-var defaultScopes = []string{"repo"}
-
 func (u *GitHubOAuthUseCase) StartAuthentication(
 	ctx context.Context,
 	repository *domain.RepositoryIdentifier,
@@ -70,7 +68,7 @@ func (u *GitHubOAuthUseCase) StartAuthentication(
 	}
 
 	u.oauthProvider.SetRedirectURI(redirectURI)
-	authURL := u.oauthProvider.GetAuthorizationURL(state, defaultScopes)
+	authURL := u.oauthProvider.GetAuthorizationURL(state)
 
 	return authURL, nil
 }

@@ -86,8 +86,7 @@ func TestGitHubOAuthProviderAdapter_GetAuthorizationURL(t *testing.T) {
 		setupMock func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal
 	}
 	type args struct {
-		state  string
-		scopes []string
+		state string
 	}
 	tests := []struct {
 		name   string
@@ -100,30 +99,28 @@ func TestGitHubOAuthProviderAdapter_GetAuthorizationURL(t *testing.T) {
 			fields: fields{
 				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
 					mock := NewMockGitHubOAuthProviderInternal(ctrl)
-					mock.EXPECT().GetAuthorizationURL("test-state", []string{"read:user", "repo"}).Return("https://github.com/login/oauth/authorize?state=test-state")
+					mock.EXPECT().GetAuthorizationURL("test-state").Return("https://github.com/login/oauth/authorize?state=test-state")
 					return mock
 				},
 			},
 			args: args{
-				state:  "test-state",
-				scopes: []string{"read:user", "repo"},
+				state: "test-state",
 			},
 			want: "https://github.com/login/oauth/authorize?state=test-state",
 		},
 		{
-			name: "正常系: スコープが空の場合も正しく委譲される",
+			name: "正常系: 別のstateでも正しく委譲される",
 			fields: fields{
 				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
 					mock := NewMockGitHubOAuthProviderInternal(ctrl)
-					mock.EXPECT().GetAuthorizationURL("state-empty-scope", []string{}).Return("https://github.com/login/oauth/authorize?state=state-empty-scope")
+					mock.EXPECT().GetAuthorizationURL("state-another").Return("https://github.com/login/oauth/authorize?state=state-another")
 					return mock
 				},
 			},
 			args: args{
-				state:  "state-empty-scope",
-				scopes: []string{},
+				state: "state-another",
 			},
-			want: "https://github.com/login/oauth/authorize?state=state-empty-scope",
+			want: "https://github.com/login/oauth/authorize?state=state-another",
 		},
 	}
 
@@ -135,7 +132,7 @@ func TestGitHubOAuthProviderAdapter_GetAuthorizationURL(t *testing.T) {
 			mockProvider := tt.fields.setupMock(ctrl)
 			adapter := NewGitHubOAuthProviderAdapter(mockProvider)
 
-			got := adapter.GetAuthorizationURL(tt.args.state, tt.args.scopes)
+			got := adapter.GetAuthorizationURL(tt.args.state)
 
 			if got != tt.want {
 				t.Errorf("GetAuthorizationURL() = %v, want %v", got, tt.want)
@@ -459,7 +456,7 @@ func TestGitHubOAuthProviderAdapter_ImplementsInterface(t *testing.T) {
 
 type mockInternalProvider struct{}
 
-func (m *mockInternalProvider) GetAuthorizationURL(state string, scopes []string) string {
+func (m *mockInternalProvider) GetAuthorizationURL(state string) string {
 	return ""
 }
 

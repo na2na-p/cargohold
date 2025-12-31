@@ -56,15 +56,15 @@ func (mr *MockTokenExchangerMockRecorder) ExchangeCode(ctx, code any) *gomock.Ca
 }
 
 // GetAuthorizationURL mocks base method.
-func (m *MockTokenExchanger) GetAuthorizationURL(state string, scopes []string) string {
+func (m *MockTokenExchanger) GetAuthorizationURL(state string) string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAuthorizationURL", state, scopes)
+	ret := m.ctrl.Call(m, "GetAuthorizationURL", state)
 	ret0, _ := ret[0].(string)
 	return ret0
 }
 
 // GetAuthorizationURL indicates an expected call of GetAuthorizationURL.
-func (mr *MockTokenExchangerMockRecorder) GetAuthorizationURL(state, scopes any) *gomock.Call {
+func (mr *MockTokenExchangerMockRecorder) GetAuthorizationURL(state any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorizationURL", reflect.TypeOf((*MockTokenExchanger)(nil).GetAuthorizationURL), state, scopes)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorizationURL", reflect.TypeOf((*MockTokenExchanger)(nil).GetAuthorizationURL), state)
 }

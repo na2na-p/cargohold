@@ -6,6 +6,6 @@ import (
 )
 
 type TokenExchanger interface {
-	GetAuthorizationURL(state string, scopes []string) string
+	GetAuthorizationURL(state string) string
 	ExchangeCode(ctx context.Context, code string) (*oauthToken, error)
 }

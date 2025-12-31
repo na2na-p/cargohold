@@ -10,7 +10,7 @@ import (
 
 type GitHubOAuthProviderInternal interface {
 	SetRedirectURI(redirectURI string)
-	GetAuthorizationURL(state string, scopes []string) string
+	GetAuthorizationURL(state string) string
 	ExchangeCode(ctx context.Context, code string) (*oauthToken, error)
 	GetUserInfo(ctx context.Context, token *oauthToken) (*gitHubUser, error)
 	CanAccessRepository(ctx context.Context, token *oauthToken, repo *domain.RepositoryIdentifier) (bool, error)
@@ -33,8 +33,8 @@ func (a *GitHubOAuthProviderAdapter) SetRedirectURI(redirectURI string) {
 	a.provider.SetRedirectURI(redirectURI)
 }
 
-func (a *GitHubOAuthProviderAdapter) GetAuthorizationURL(state string, scopes []string) string {
-	return a.provider.GetAuthorizationURL(state, scopes)
+func (a *GitHubOAuthProviderAdapter) GetAuthorizationURL(state string) string {
+	return a.provider.GetAuthorizationURL(state)
 }
 
 func (a *GitHubOAuthProviderAdapter) ExchangeCode(ctx context.Context, code string) (*usecase.OAuthTokenResult, error) {

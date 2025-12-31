@@ -56,7 +56,7 @@ func TestGitHubOAuthUseCase_StartAuthentication(t *testing.T) {
 				stateStore.EXPECT().SaveState(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 				oauthProvider.EXPECT().SetRedirectURI(gomock.Any())
-				oauthProvider.EXPECT().GetAuthorizationURL(gomock.Any(), gomock.Any()).Return("https://github.com/login/oauth/authorize?state=xxx")
+				oauthProvider.EXPECT().GetAuthorizationURL(gomock.Any()).Return("https://github.com/login/oauth/authorize?state=xxx")
 
 				return oauthProvider, sessionStore, stateStore
 			},
@@ -147,7 +147,7 @@ func TestGitHubOAuthUseCase_StartAuthentication(t *testing.T) {
 				stateStore.EXPECT().SaveState(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 				oauthProvider.EXPECT().SetRedirectURI(gomock.Any())
-				oauthProvider.EXPECT().GetAuthorizationURL(gomock.Any(), gomock.Any()).Return("https://github.com/login/oauth/authorize?state=xxx")
+				oauthProvider.EXPECT().GetAuthorizationURL(gomock.Any()).Return("https://github.com/login/oauth/authorize?state=xxx")
 
 				return oauthProvider, sessionStore, stateStore
 			},

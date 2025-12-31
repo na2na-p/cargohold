@@ -60,8 +60,8 @@ func (p *GitHubOAuthProvider) SetRedirectURI(redirectURI string) {
 	p.tokenExchanger.SetRedirectURI(redirectURI)
 }
 
-func (p *GitHubOAuthProvider) GetAuthorizationURL(state string, scopes []string) string {
-	return p.tokenExchanger.GetAuthorizationURL(state, scopes)
+func (p *GitHubOAuthProvider) GetAuthorizationURL(state string) string {
+	return p.tokenExchanger.GetAuthorizationURL(state)
 }
 
 func (p *GitHubOAuthProvider) ExchangeCode(ctx context.Context, code string) (*oauthToken, error) {
