@@ -4,17 +4,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/spf13/viper"
+	"github.com/kelseyhightower/envconfig"
 )
 
-// ServerConfig はHTTPサーバーの設定を保持します
 type ServerConfig struct {
-	TrustProxy        bool
-	TrustedProxyCIDRs []string
-	ProxyTimeout      time.Duration
+	TrustProxy        bool          `envconfig:"SERVER_TRUST_PROXY" default:"false"`
+	TrustedProxyCIDRs []string      `envconfig:"SERVER_TRUSTED_PROXY_CIDRS"`
+	ProxyTimeout      time.Duration `envconfig:"SERVER_PROXY_TIMEOUT" default:"10m"`
 }
 
-// Config はアプリケーション全体の設定を保持します
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
@@ -24,82 +22,57 @@ type Config struct {
 	OAuth    OAuthConfig
 }
 
-// DatabaseConfig はデータベース接続の設定を保持します
 type DatabaseConfig struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	DBName   string
-	SSLMode  string // PostgreSQL SSL mode: disable, require, verify-ca, verify-full
+	Host     string `envconfig:"DATABASE_HOST" required:"true"`
+	Port     int    `envconfig:"DATABASE_PORT" default:"5432"`
+	User     string `envconfig:"DATABASE_USER" required:"true"`
+	Password string `envconfig:"DATABASE_PASSWORD" required:"true"`
+	DBName   string `envconfig:"DATABASE_DBNAME" required:"true"`
+	SSLMode  string `envconfig:"DATABASE_SSLMODE" default:"require"`
 }
 
-// RedisConfig はRedis接続の設定を保持します
 type RedisConfig struct {
-	Host     string
-	Port     int
-	Password string
-	DB       int
+	Host     string `envconfig:"REDIS_HOST" required:"true"`
+	Port     int    `envconfig:"REDIS_PORT" default:"6379"`
+	Password string `envconfig:"REDIS_PASSWORD"`
+	DB       int    `envconfig:"REDIS_DB" default:"0"`
 }
 
-// S3Config はS3接続の設定を保持します
 type S3Config struct {
-	Endpoint        string
-	AccessKeyID     string
-	SecretAccessKey string
-	BucketName      string
-	Region          string
+	Endpoint        string `envconfig:"S3_ENDPOINT" required:"true"`
+	AccessKeyID     string `envconfig:"S3_ACCESSKEYID" required:"true"`
+	SecretAccessKey string `envconfig:"S3_SECRETACCESSKEY" required:"true"`
+	BucketName      string `envconfig:"S3_BUCKETNAME" required:"true"`
+	Region          string `envconfig:"S3_REGION" required:"true"`
 }
 
-// OIDCConfig はOIDCプロバイダーの設定を保持します
 type OIDCConfig struct {
 	GitHub GitHubOIDCConfig
 }
 
-// GitHubOIDCConfig はGitHub OIDC設定を保持します
 type GitHubOIDCConfig struct {
-	Enabled  bool // OIDC認証の有効/無効フラグ
-	Audience string
-	JWKSURL  string
+	Enabled  bool   `envconfig:"OIDC_GITHUB_ENABLED" default:"true"`
+	Audience string `envconfig:"OIDC_GITHUB_AUDIENCE"`
+	JWKSURL  string `envconfig:"OIDC_GITHUB_JWKSURL"`
 }
 
-// OAuthConfig はOAuth認証の設定を保持します
 type OAuthConfig struct {
-	GitHub GitHubOAuthConfig `yaml:"github"`
+	GitHub GitHubOAuthConfig
 }
 
-// GitHubOAuthConfig はGitHub OAuth設定を保持します
 type GitHubOAuthConfig struct {
-	Enabled             bool     `yaml:"enabled"`
-	ClientID            string   `yaml:"clientId" env:"GITHUB_OAUTH_CLIENT_ID"`
-	ClientSecret        string   `yaml:"clientSecret" env:"GITHUB_OAUTH_CLIENT_SECRET"`
-	AllowedHosts        []string `yaml:"allowedHosts"`
-	AllowedRedirectURIs []string `yaml:"allowedRedirectUris"`
+	Enabled             bool     `envconfig:"OAUTH_GITHUB_ENABLED" default:"false"`
+	ClientID            string   `envconfig:"GITHUB_OAUTH_CLIENT_ID"`
+	ClientSecret        string   `envconfig:"GITHUB_OAUTH_CLIENT_SECRET"`
+	AllowedHosts        []string `envconfig:"OAUTH_GITHUB_ALLOWED_HOSTS"`
+	AllowedRedirectURIs []string `envconfig:"OAUTH_GITHUB_ALLOWED_REDIRECT_URIS"`
 }
 
-// Load は設定ファイルを読み込み、Config構造体を返します
 func Load() (*Config, error) {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("./config")
-	viper.AutomaticEnv()
-
-	viper.SetDefault("server.trustproxy", false)
-	viper.SetDefault("server.proxytimeout", 10*time.Minute)
-	viper.SetDefault("oidc.github.enabled", true)
-	viper.SetDefault("oauth.github.enabled", false)
-	viper.SetDefault("database.sslmode", "require")
-
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, err
-	}
-
 	var cfg Config
-	if err := viper.Unmarshal(&cfg); err != nil {
+	if err := envconfig.Process("", &cfg); err != nil {
 		return nil, err
 	}
-
 	return &cfg, nil
 }
 

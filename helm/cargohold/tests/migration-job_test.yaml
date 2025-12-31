@@ -142,3 +142,57 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].image
           value: "custom-repo/cargohold-migration:v1.0.0"
+
+  - it: allows adding init containers (native sidecar with restartPolicy Always)
+    template: templates/migration-job.yaml
+    set:
+      migration:
+        initContainers:
+          - name: cloud-sql-proxy
+            image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.20.0
+            restartPolicy: Always
+            args:
+              - "--port=5432"
+              - "project:region:instance"
+            securityContext:
+              runAsNonRoot: true
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: cloud-sql-proxy
+            image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.20.0
+            restartPolicy: Always
+          any: true
+
+  - it: allows adding extra volumes
+    template: templates/migration-job.yaml
+    set:
+      migration:
+        extraVolumes:
+          - name: gcp-sa-key
+            secret:
+              secretName: cloudsql-sa-key
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: gcp-sa-key
+            secret:
+              secretName: cloudsql-sa-key
+
+  - it: allows adding extra volume mounts
+    template: templates/migration-job.yaml
+    set:
+      migration:
+        extraVolumeMounts:
+          - name: gcp-sa-key
+            mountPath: /secrets/cloudsql
+            readOnly: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: gcp-sa-key
+            mountPath: /secrets/cloudsql
+            readOnly: true
