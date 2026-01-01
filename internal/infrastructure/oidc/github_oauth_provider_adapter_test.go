@@ -444,6 +444,138 @@ func TestGitHubOAuthProviderAdapter_CanAccessRepository(t *testing.T) {
 	}
 }
 
+func TestGitHubOAuthProviderAdapter_GetRepositoryPermissions(t *testing.T) {
+	type fields struct {
+		setupMock func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal
+	}
+	type args struct {
+		ctx   context.Context
+		token *usecase.OAuthTokenResult
+		repo  *domain.RepositoryIdentifier
+	}
+	tests := []struct {
+		name          string
+		fields        fields
+		args          args
+		wantCanUpload bool
+		wantCanDown   bool
+		wantErr       error
+	}{
+		{
+			name: "正常系: push権限がある場合",
+			fields: fields{
+				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
+					mock := NewMockGitHubOAuthProviderInternal(ctrl)
+					expectedToken := &oauthToken{
+						AccessToken: "gho_test_token",
+						TokenType:   "bearer",
+						Scope:       "repo",
+					}
+					mock.EXPECT().GetRepositoryPermissions(gomock.Any(), expectedToken, gomock.Any()).Return(
+						domain.NewRepositoryPermissions(false, true, true, false, false),
+						nil,
+					)
+					return mock
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				token: &usecase.OAuthTokenResult{
+					AccessToken: "gho_test_token",
+					TokenType:   "bearer",
+					Scope:       "repo",
+				},
+				repo: mustCreateRepositoryIdentifier(t, "owner/repo"),
+			},
+			wantCanUpload: true,
+			wantCanDown:   true,
+			wantErr:       nil,
+		},
+		{
+			name: "正常系: pull権限のみの場合",
+			fields: fields{
+				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
+					mock := NewMockGitHubOAuthProviderInternal(ctrl)
+					mock.EXPECT().GetRepositoryPermissions(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+						domain.NewRepositoryPermissions(false, false, true, false, false),
+						nil,
+					)
+					return mock
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				token: &usecase.OAuthTokenResult{
+					AccessToken: "gho_test_token",
+					TokenType:   "bearer",
+				},
+				repo: mustCreateRepositoryIdentifier(t, "owner/repo"),
+			},
+			wantCanUpload: false,
+			wantCanDown:   true,
+			wantErr:       nil,
+		},
+		{
+			name: "異常系: 内部プロバイダーがエラーを返す場合、エラーがそのまま返される",
+			fields: fields{
+				setupMock: func(ctrl *gomock.Controller) *MockGitHubOAuthProviderInternal {
+					mock := NewMockGitHubOAuthProviderInternal(ctrl)
+					mock.EXPECT().GetRepositoryPermissions(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+						domain.RepositoryPermissions{},
+						errors.New("server error"),
+					)
+					return mock
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				token: &usecase.OAuthTokenResult{
+					AccessToken: "gho_test_token",
+					TokenType:   "bearer",
+				},
+				repo: mustCreateRepositoryIdentifier(t, "owner/repo"),
+			},
+			wantCanUpload: false,
+			wantCanDown:   false,
+			wantErr:       errors.New("server error"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockProvider := tt.fields.setupMock(ctrl)
+			adapter := NewGitHubOAuthProviderAdapter(mockProvider)
+
+			got, err := adapter.GetRepositoryPermissions(tt.args.ctx, tt.args.token, tt.args.repo)
+
+			if tt.wantErr != nil {
+				if err == nil {
+					t.Fatalf("エラーが期待されましたが、nilが返りました")
+				}
+				if err.Error() != tt.wantErr.Error() {
+					t.Errorf("エラーメッセージが一致しません: want=%v, got=%v", tt.wantErr, err)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("エラーは期待されていませんでしたが、%v が返りました", err)
+			}
+
+			if got.CanUpload() != tt.wantCanUpload {
+				t.Errorf("CanUpload() = %v, want %v", got.CanUpload(), tt.wantCanUpload)
+			}
+
+			if got.CanDownload() != tt.wantCanDown {
+				t.Errorf("CanDownload() = %v, want %v", got.CanDownload(), tt.wantCanDown)
+			}
+		})
+	}
+}
+
 func TestGitHubOAuthProviderAdapter_ImplementsInterface(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -470,6 +602,10 @@ func (m *mockInternalProvider) GetUserInfo(ctx context.Context, token *oauthToke
 
 func (m *mockInternalProvider) CanAccessRepository(ctx context.Context, token *oauthToken, repo *domain.RepositoryIdentifier) (bool, error) {
 	return false, nil
+}
+
+func (m *mockInternalProvider) GetRepositoryPermissions(ctx context.Context, token *oauthToken, repo *domain.RepositoryIdentifier) (domain.RepositoryPermissions, error) {
+	return domain.RepositoryPermissions{}, nil
 }
 
 func (m *mockInternalProvider) SetRedirectURI(redirectURI string) {

@@ -85,6 +85,21 @@ func (mr *MockGitHubOAuthProviderInternalMockRecorder) GetAuthorizationURL(state
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorizationURL", reflect.TypeOf((*MockGitHubOAuthProviderInternal)(nil).GetAuthorizationURL), state)
 }
 
+// GetRepositoryPermissions mocks base method.
+func (m *MockGitHubOAuthProviderInternal) GetRepositoryPermissions(ctx context.Context, token *oauthToken, repo *domain.RepositoryIdentifier) (domain.RepositoryPermissions, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRepositoryPermissions", ctx, token, repo)
+	ret0, _ := ret[0].(domain.RepositoryPermissions)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRepositoryPermissions indicates an expected call of GetRepositoryPermissions.
+func (mr *MockGitHubOAuthProviderInternalMockRecorder) GetRepositoryPermissions(ctx, token, repo any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRepositoryPermissions", reflect.TypeOf((*MockGitHubOAuthProviderInternal)(nil).GetRepositoryPermissions), ctx, token, repo)
+}
+
 // GetUserInfo mocks base method.
 func (m *MockGitHubOAuthProviderInternal) GetUserInfo(ctx context.Context, token *oauthToken) (*gitHubUser, error) {
 	m.ctrl.T.Helper()

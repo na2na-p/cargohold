@@ -19,6 +19,7 @@ type GitHubOAuthProviderInterface interface {
 	ExchangeCode(ctx context.Context, code string) (*OAuthTokenResult, error)
 	GetUserInfo(ctx context.Context, token *OAuthTokenResult) (*GitHubUserResult, error)
 	CanAccessRepository(ctx context.Context, token *OAuthTokenResult, repo *domain.RepositoryIdentifier) (bool, error)
+	GetRepositoryPermissions(ctx context.Context, token *OAuthTokenResult, repo *domain.RepositoryIdentifier) (domain.RepositoryPermissions, error)
 }
 
 type OAuthStateStoreInterface interface {

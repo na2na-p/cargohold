@@ -14,6 +14,7 @@ type GitHubOAuthProviderInternal interface {
 	ExchangeCode(ctx context.Context, code string) (*oauthToken, error)
 	GetUserInfo(ctx context.Context, token *oauthToken) (*gitHubUser, error)
 	CanAccessRepository(ctx context.Context, token *oauthToken, repo *domain.RepositoryIdentifier) (bool, error)
+	GetRepositoryPermissions(ctx context.Context, token *oauthToken, repo *domain.RepositoryIdentifier) (domain.RepositoryPermissions, error)
 }
 
 type GitHubOAuthProviderAdapter struct {
@@ -73,4 +74,13 @@ func (a *GitHubOAuthProviderAdapter) CanAccessRepository(ctx context.Context, to
 		Scope:       token.Scope,
 	}
 	return a.provider.CanAccessRepository(ctx, internalToken, repo)
+}
+
+func (a *GitHubOAuthProviderAdapter) GetRepositoryPermissions(ctx context.Context, token *usecase.OAuthTokenResult, repo *domain.RepositoryIdentifier) (domain.RepositoryPermissions, error) {
+	internalToken := &oauthToken{
+		AccessToken: token.AccessToken,
+		TokenType:   token.TokenType,
+		Scope:       token.Scope,
+	}
+	return a.provider.GetRepositoryPermissions(ctx, internalToken, repo)
 }
