@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/labstack/echo/v4"
+	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
 	"github.com/na2na-p/cargohold/internal/usecase"
@@ -24,12 +25,13 @@ func TestBatchHandler_Handle(t *testing.T) {
 		setupMock func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface
 	}
 	type args struct {
-		method  string
-		path    string
-		owner   string
-		repo    string
-		body    interface{}
-		headers map[string]string
+		method   string
+		path     string
+		owner    string
+		repo     string
+		body     interface{}
+		headers  map[string]string
+		userInfo *domain.UserInfo
 	}
 	tests := []struct {
 		name           string
@@ -78,6 +80,13 @@ func TestBatchHandler_Handle(t *testing.T) {
 					"Accept":       "application/vnd.git-lfs+json",
 					"Content-Type": "application/vnd.git-lfs+json",
 				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, true, true, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
 			},
 			wantStatusCode: http.StatusOK,
 			wantBody: map[string]interface{}{
@@ -138,6 +147,13 @@ func TestBatchHandler_Handle(t *testing.T) {
 					"Accept":       "application/vnd.git-lfs+json",
 					"Content-Type": "application/vnd.git-lfs+json",
 				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, false, true, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
 			},
 			wantStatusCode: http.StatusOK,
 			wantBody: map[string]interface{}{
@@ -272,6 +288,13 @@ func TestBatchHandler_Handle(t *testing.T) {
 					"Accept":       "application/vnd.git-lfs+json",
 					"Content-Type": "application/vnd.git-lfs+json",
 				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, false, true, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
 			},
 			wantStatusCode: http.StatusUnprocessableEntity,
 			wantBody: map[string]interface{}{
@@ -302,6 +325,13 @@ func TestBatchHandler_Handle(t *testing.T) {
 					"Accept":       "application/vnd.git-lfs+json",
 					"Content-Type": "application/vnd.git-lfs+json",
 				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, true, true, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
 			},
 			wantStatusCode: http.StatusUnprocessableEntity,
 			wantBody: map[string]interface{}{
@@ -337,6 +367,13 @@ func TestBatchHandler_Handle(t *testing.T) {
 					"Accept":       "application/vnd.git-lfs+json",
 					"Content-Type": "application/vnd.git-lfs+json",
 				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, true, true, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
 			},
 			wantStatusCode: http.StatusUnprocessableEntity,
 			wantBody: map[string]interface{}{
@@ -372,6 +409,13 @@ func TestBatchHandler_Handle(t *testing.T) {
 					"Accept":       "application/vnd.git-lfs+json",
 					"Content-Type": "application/vnd.git-lfs+json",
 				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, true, true, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
 			},
 			wantStatusCode: http.StatusUnprocessableEntity,
 			wantBody: map[string]interface{}{
@@ -408,6 +452,13 @@ func TestBatchHandler_Handle(t *testing.T) {
 					"Accept":       "application/vnd.git-lfs+json",
 					"Content-Type": "application/vnd.git-lfs+json",
 				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, true, true, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
 			},
 			wantStatusCode: http.StatusUnprocessableEntity,
 			wantBody: map[string]interface{}{
@@ -443,6 +494,13 @@ func TestBatchHandler_Handle(t *testing.T) {
 					"Accept":       "application/vnd.git-lfs+json",
 					"Content-Type": "application/vnd.git-lfs+json",
 				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, true, true, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
 			},
 			wantStatusCode: http.StatusInternalServerError,
 			wantBody: map[string]interface{}{
@@ -488,6 +546,13 @@ func TestBatchHandler_Handle(t *testing.T) {
 					"Accept":       "application/vnd.git-lfs+json",
 					"Content-Type": "application/vnd.git-lfs+json",
 				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, false, true, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
 			},
 			wantStatusCode: http.StatusOK,
 			wantBody: map[string]interface{}{
@@ -504,6 +569,248 @@ func TestBatchHandler_Handle(t *testing.T) {
 					},
 				},
 				"hash_algo": "sha256",
+			},
+		},
+		{
+			name: "異常系: uploadオペレーションで権限不足の場合、403エラーが返る",
+			fields: fields{
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					return mock_usecase.NewMockBatchUseCaseInterface(ctrl)
+				},
+			},
+			args: args{
+				method: http.MethodPost,
+				path:   "/testowner/testrepo/info/lfs/objects/batch",
+				owner:  "testowner",
+				repo:   "testrepo",
+				body: map[string]interface{}{
+					"operation": "upload",
+					"objects": []map[string]interface{}{
+						{
+							"oid":  "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+							"size": 123456,
+						},
+					},
+				},
+				headers: map[string]string{
+					"Accept":       "application/vnd.git-lfs+json",
+					"Content-Type": "application/vnd.git-lfs+json",
+				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, false, true, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
+			},
+			wantStatusCode: http.StatusForbidden,
+			wantBody: map[string]interface{}{
+				"message": "このオペレーションを実行する権限がありません",
+			},
+		},
+		{
+			name: "異常系: downloadオペレーションで権限不足の場合、403エラーが返る",
+			fields: fields{
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					return mock_usecase.NewMockBatchUseCaseInterface(ctrl)
+				},
+			},
+			args: args{
+				method: http.MethodPost,
+				path:   "/testowner/testrepo/info/lfs/objects/batch",
+				owner:  "testowner",
+				repo:   "testrepo",
+				body: map[string]interface{}{
+					"operation": "download",
+					"objects": []map[string]interface{}{
+						{
+							"oid":  "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+							"size": 123456,
+						},
+					},
+				},
+				headers: map[string]string{
+					"Accept":       "application/vnd.git-lfs+json",
+					"Content-Type": "application/vnd.git-lfs+json",
+				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, false, false, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
+			},
+			wantStatusCode: http.StatusForbidden,
+			wantBody: map[string]interface{}{
+				"message": "このオペレーションを実行する権限がありません",
+			},
+		},
+		{
+			name: "正常系: uploadオペレーションでpush権限がある場合、成功する",
+			fields: fields{
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest) (usecase.BatchResponse, error) {
+							uploadAction := usecase.NewAction("https://s3.example.com/upload", nil, 900)
+							actions := usecase.NewActions(&uploadAction, nil)
+							return usecase.NewBatchResponse(
+								"basic",
+								[]usecase.ResponseObject{
+									usecase.NewResponseObject("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890", 123456, true, &actions, nil),
+								},
+								"sha256",
+							), nil
+						},
+					)
+					return m
+				},
+			},
+			args: args{
+				method: http.MethodPost,
+				path:   "/testowner/testrepo/info/lfs/objects/batch",
+				owner:  "testowner",
+				repo:   "testrepo",
+				body: map[string]interface{}{
+					"operation": "upload",
+					"objects": []map[string]interface{}{
+						{
+							"oid":  "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+							"size": 123456,
+						},
+					},
+					"transfers": []string{"basic"},
+				},
+				headers: map[string]string{
+					"Accept":       "application/vnd.git-lfs+json",
+					"Content-Type": "application/vnd.git-lfs+json",
+				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, true, true, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
+			},
+			wantStatusCode: http.StatusOK,
+			wantBody: map[string]interface{}{
+				"transfer": "basic",
+				"objects": []interface{}{
+					map[string]interface{}{
+						"oid":           "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+						"size":          float64(123456),
+						"authenticated": true,
+						"actions": map[string]interface{}{
+							"upload": map[string]interface{}{
+								"href":       "https://s3.example.com/upload",
+								"expires_in": float64(900),
+							},
+						},
+					},
+				},
+				"hash_algo": "sha256",
+			},
+		},
+		{
+			name: "正常系: downloadオペレーションでpull権限がある場合、成功する",
+			fields: fields{
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest) (usecase.BatchResponse, error) {
+							downloadAction := usecase.NewAction("https://s3.example.com/download", nil, 900)
+							actions := usecase.NewActions(nil, &downloadAction)
+							return usecase.NewBatchResponse(
+								"basic",
+								[]usecase.ResponseObject{
+									usecase.NewResponseObject("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890", 123456, true, &actions, nil),
+								},
+								"sha256",
+							), nil
+						},
+					)
+					return m
+				},
+			},
+			args: args{
+				method: http.MethodPost,
+				path:   "/testowner/testrepo/info/lfs/objects/batch",
+				owner:  "testowner",
+				repo:   "testrepo",
+				body: map[string]interface{}{
+					"operation": "download",
+					"objects": []map[string]interface{}{
+						{
+							"oid":  "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+							"size": 123456,
+						},
+					},
+					"transfers": []string{"basic"},
+				},
+				headers: map[string]string{
+					"Accept":       "application/vnd.git-lfs+json",
+					"Content-Type": "application/vnd.git-lfs+json",
+				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, false, true, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
+			},
+			wantStatusCode: http.StatusOK,
+			wantBody: map[string]interface{}{
+				"transfer": "basic",
+				"objects": []interface{}{
+					map[string]interface{}{
+						"oid":           "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+						"size":          float64(123456),
+						"authenticated": true,
+						"actions": map[string]interface{}{
+							"download": map[string]interface{}{
+								"href":       "https://s3.example.com/download",
+								"expires_in": float64(900),
+							},
+						},
+					},
+				},
+				"hash_algo": "sha256",
+			},
+		},
+		{
+			name: "異常系: UserInfoがコンテキストに設定されていない場合、403エラーが返る",
+			fields: fields{
+				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
+					return mock_usecase.NewMockBatchUseCaseInterface(ctrl)
+				},
+			},
+			args: args{
+				method: http.MethodPost,
+				path:   "/testowner/testrepo/info/lfs/objects/batch",
+				owner:  "testowner",
+				repo:   "testrepo",
+				body: map[string]interface{}{
+					"operation": "upload",
+					"objects": []map[string]interface{}{
+						{
+							"oid":  "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+							"size": 123456,
+						},
+					},
+				},
+				headers: map[string]string{
+					"Accept":       "application/vnd.git-lfs+json",
+					"Content-Type": "application/vnd.git-lfs+json",
+				},
+				userInfo: nil,
+			},
+			wantStatusCode: http.StatusForbidden,
+			wantBody: map[string]interface{}{
+				"message": "認証情報が見つかりません",
 			},
 		},
 	}
@@ -528,6 +835,10 @@ func TestBatchHandler_Handle(t *testing.T) {
 			c := e.NewContext(req, rec)
 			c.SetParamNames("owner", "repo")
 			c.SetParamValues(tt.args.owner, tt.args.repo)
+
+			if tt.args.userInfo != nil {
+				c.Set(middleware.UserInfoContextKey, tt.args.userInfo)
+			}
 
 			mockUseCase := tt.fields.setupMock(ctrl)
 			h := handler.NewBatchHandler(mockUseCase)
@@ -560,6 +871,7 @@ func TestBatchHandler_Integration(t *testing.T) {
 		setupMock      func(t *testing.T, ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface
 		requestBody    string
 		setupHeaders   func(req *http.Request)
+		userInfo       *domain.UserInfo
 		wantStatusCode int
 		checkResponse  func(t *testing.T, body []byte)
 	}{
@@ -602,6 +914,13 @@ func TestBatchHandler_Integration(t *testing.T) {
 				req.Header.Set(echo.HeaderContentType, handler.GitLFSContentType)
 				req.Header.Set(echo.HeaderAccept, handler.GitLFSContentType)
 			},
+			userInfo: func() *domain.UserInfo {
+				perms := domain.NewRepositoryPermissions(false, true, true, false, false)
+				repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+				ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+				ui.SetPermissions(&perms)
+				return ui
+			}(),
 			wantStatusCode: http.StatusOK,
 			checkResponse: func(t *testing.T, body []byte) {
 				var resp usecase.BatchResponse
@@ -629,6 +948,7 @@ func TestBatchHandler_Integration(t *testing.T) {
 				req.Header.Set(echo.HeaderContentType, "application/json")
 				req.Header.Set(echo.HeaderAccept, "application/json")
 			},
+			userInfo:       nil,
 			wantStatusCode: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, body []byte) {
 				var errResp map[string]interface{}
@@ -657,6 +977,10 @@ func TestBatchHandler_Integration(t *testing.T) {
 			c.SetParamNames("owner", "repo")
 			c.SetParamValues("testowner", "testrepo")
 
+			if tt.userInfo != nil {
+				c.Set(middleware.UserInfoContextKey, tt.userInfo)
+			}
+
 			mockUseCase := tt.setupMock(t, ctrl)
 			h := handler.NewBatchHandler(mockUseCase)
 
@@ -678,8 +1002,9 @@ func TestBatchHandler_Handle_PayloadTooLarge(t *testing.T) {
 		setupMock func(t *testing.T, ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface
 	}
 	type args struct {
-		body    io.Reader
-		headers map[string]string
+		body     io.Reader
+		headers  map[string]string
+		userInfo *domain.UserInfo
 	}
 	tests := []struct {
 		name           string
@@ -701,6 +1026,7 @@ func TestBatchHandler_Handle_PayloadTooLarge(t *testing.T) {
 					"Accept":       "application/vnd.git-lfs+json",
 					"Content-Type": "application/vnd.git-lfs+json",
 				},
+				userInfo: nil,
 			},
 			wantStatusCode: http.StatusRequestEntityTooLarge,
 			wantBody: map[string]interface{}{
@@ -724,6 +1050,13 @@ func TestBatchHandler_Handle_PayloadTooLarge(t *testing.T) {
 					"Accept":       "application/vnd.git-lfs+json",
 					"Content-Type": "application/vnd.git-lfs+json",
 				},
+				userInfo: func() *domain.UserInfo {
+					perms := domain.NewRepositoryPermissions(false, true, true, false, false)
+					repoID, _ := domain.NewRepositoryIdentifier("testowner/testrepo")
+					ui, _ := domain.NewUserInfo("test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, repoID, "refs/heads/main")
+					ui.SetPermissions(&perms)
+					return ui
+				}(),
 			},
 			wantStatusCode: http.StatusOK,
 			wantBody:       nil,
@@ -743,6 +1076,10 @@ func TestBatchHandler_Handle_PayloadTooLarge(t *testing.T) {
 			c := e.NewContext(req, rec)
 			c.SetParamNames("owner", "repo")
 			c.SetParamValues("testowner", "testrepo")
+
+			if tt.args.userInfo != nil {
+				c.Set(middleware.UserInfoContextKey, tt.args.userInfo)
+			}
 
 			mockUseCase := tt.fields.setupMock(t, ctrl)
 			h := handler.NewBatchHandler(mockUseCase)

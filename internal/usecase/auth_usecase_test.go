@@ -217,7 +217,7 @@ func TestAuthUseCase_AuthenticateGitHubOIDC(t *testing.T) {
 			args: args{
 				token: "valid-github-token",
 			},
-			want: mustNewUserInfo(t,
+			want: mustNewUserInfoWithFullPermissions(t,
 				"repo:owner/repo:ref:refs/heads/main",
 				"",
 				"github-actor",
@@ -269,7 +269,7 @@ func TestAuthUseCase_AuthenticateGitHubOIDC(t *testing.T) {
 				if err != nil {
 					t.Fatalf("AuthenticateGitHubOIDC() unexpected error: %v", err)
 				}
-				if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(domain.UserInfo{}, domain.ProviderType{}, domain.RepositoryIdentifier{})); diff != "" {
+				if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(domain.UserInfo{}, domain.ProviderType{}, domain.RepositoryIdentifier{}, domain.RepositoryPermissions{})); diff != "" {
 					t.Errorf("AuthenticateGitHubOIDC() mismatch (-want +got):\n%s", diff)
 				}
 			}

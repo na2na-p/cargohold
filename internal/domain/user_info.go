@@ -1,12 +1,13 @@
 package domain
 
 type UserInfo struct {
-	sub        string
-	email      string
-	name       string
-	provider   ProviderType
-	repository *RepositoryIdentifier
-	ref        string
+	sub         string
+	email       string
+	name        string
+	provider    ProviderType
+	repository  *RepositoryIdentifier
+	ref         string
+	permissions *RepositoryPermissions
 }
 
 func NewUserInfo(sub, email, name string, provider ProviderType, repository *RepositoryIdentifier, ref string) (*UserInfo, error) {
@@ -45,4 +46,12 @@ func (u *UserInfo) Repository() *RepositoryIdentifier {
 
 func (u *UserInfo) Ref() string {
 	return u.ref
+}
+
+func (u *UserInfo) Permissions() *RepositoryPermissions {
+	return u.permissions
+}
+
+func (u *UserInfo) SetPermissions(permissions *RepositoryPermissions) {
+	u.permissions = permissions
 }

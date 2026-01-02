@@ -49,5 +49,13 @@ func (uc *GitHubOIDCUseCase) Authenticate(ctx context.Context, token string) (*d
 		return nil, fmt.Errorf("%w: repository=%s", ErrInvalidRepository, githubUserInfo.Repository())
 	}
 
-	return githubUserInfo.ToUserInfo()
+	userInfo, err := githubUserInfo.ToUserInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	fullPerms := domain.NewRepositoryPermissions(true, true, true, true, true)
+	userInfo.SetPermissions(&fullPerms)
+
+	return userInfo, nil
 }

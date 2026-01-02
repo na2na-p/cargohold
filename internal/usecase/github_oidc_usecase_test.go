@@ -31,7 +31,7 @@ func TestGitHubOIDCUseCase_Authenticate(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name: "正常系: GitHub JWTトークンを検証し、ユーザー情報を返す",
+			name: "正常系: GitHub JWTトークンを検証し、ユーザー情報を返す（全権限付与）",
 			fields: fields{
 				setupGitHubProvider: func(ctrl *gomock.Controller) *mock_usecase.MockGitHubOIDCProvider {
 					githubProvider := mock_usecase.NewMockGitHubOIDCProvider(ctrl)
@@ -53,7 +53,7 @@ func TestGitHubOIDCUseCase_Authenticate(t *testing.T) {
 			args: args{
 				token: "valid-github-token",
 			},
-			want: mustNewUserInfo(t,
+			want: mustNewUserInfoWithFullPermissions(t,
 				"repo:owner/repo:ref:refs/heads/main",
 				"",
 				"github-actor",
@@ -64,7 +64,7 @@ func TestGitHubOIDCUseCase_Authenticate(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name: "正常系: GitHub Actions PRイベントのトークンを検証",
+			name: "正常系: GitHub Actions PRイベントのトークンを検証（全権限付与）",
 			fields: fields{
 				setupGitHubProvider: func(ctrl *gomock.Controller) *mock_usecase.MockGitHubOIDCProvider {
 					githubProvider := mock_usecase.NewMockGitHubOIDCProvider(ctrl)
@@ -86,7 +86,7 @@ func TestGitHubOIDCUseCase_Authenticate(t *testing.T) {
 			args: args{
 				token: "pr-event-token",
 			},
-			want: mustNewUserInfo(t,
+			want: mustNewUserInfoWithFullPermissions(t,
 				"repo:owner/repo:ref:refs/pull/123/merge",
 				"",
 				"pr-author",
@@ -97,7 +97,7 @@ func TestGitHubOIDCUseCase_Authenticate(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name: "正常系: GitHub Actions タグイベントのトークンを検証",
+			name: "正常系: GitHub Actions タグイベントのトークンを検証（全権限付与）",
 			fields: fields{
 				setupGitHubProvider: func(ctrl *gomock.Controller) *mock_usecase.MockGitHubOIDCProvider {
 					githubProvider := mock_usecase.NewMockGitHubOIDCProvider(ctrl)
@@ -119,7 +119,7 @@ func TestGitHubOIDCUseCase_Authenticate(t *testing.T) {
 			args: args{
 				token: "tag-event-token",
 			},
-			want: mustNewUserInfo(t,
+			want: mustNewUserInfoWithFullPermissions(t,
 				"repo:owner/repo:ref:refs/tags/v1.0.0",
 				"",
 				"release-author",
@@ -283,10 +283,22 @@ func TestGitHubOIDCUseCase_Authenticate(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Authenticate() unexpected error: %v", err)
 				}
-				if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(domain.UserInfo{}, domain.ProviderType{}, domain.RepositoryIdentifier{})); diff != "" {
+				if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(domain.UserInfo{}, domain.ProviderType{}, domain.RepositoryIdentifier{}, domain.RepositoryPermissions{})); diff != "" {
 					t.Errorf("Authenticate() mismatch (-want +got):\n%s", diff)
 				}
 			}
 		})
 	}
+}
+
+
+func mustNewUserInfoWithFullPermissions(t *testing.T, sub, email, name string, provider domain.ProviderType, repository *domain.RepositoryIdentifier, ref string) *domain.UserInfo {
+	t.Helper()
+	userInfo, err := domain.NewUserInfo(sub, email, name, provider, repository, ref)
+	if err != nil {
+		t.Fatalf("mustNewUserInfoWithFullPermissions: %v", err)
+	}
+	fullPerms := domain.NewRepositoryPermissions(true, true, true, true, true)
+	userInfo.SetPermissions(&fullPerms)
+	return userInfo
 }

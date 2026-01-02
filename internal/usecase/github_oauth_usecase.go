@@ -107,12 +107,12 @@ func (u *GitHubOAuthUseCase) HandleCallback(
 		return "", fmt.Errorf("%w: %v", ErrUserInfoFailed, err)
 	}
 
-	canAccess, err := u.oauthProvider.CanAccessRepository(ctx, token, repository)
+	permissions, err := u.oauthProvider.GetRepositoryPermissions(ctx, token, repository)
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrRepositoryAccessCheckFailed, err)
 	}
 
-	if !canAccess {
+	if !permissions.CanDownload() {
 		return "", fmt.Errorf("%w: user cannot access repository %s", ErrRepositoryAccessDenied, repository.FullName())
 	}
 
@@ -127,6 +127,8 @@ func (u *GitHubOAuthUseCase) HandleCallback(
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrUserInfoCreationFailed, err)
 	}
+
+	userInfo.SetPermissions(&permissions)
 
 	sessionID, err := u.sessionStore.CreateSession(ctx, userInfo, SessionTTL)
 	if err != nil {

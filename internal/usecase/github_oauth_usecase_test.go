@@ -256,7 +256,8 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 					Name:  "Test User",
 				}, nil)
 
-				oauthProvider.EXPECT().CanAccessRepository(gomock.Any(), token, repo).Return(true, nil)
+				perms := domain.NewRepositoryPermissions(false, true, true, false, false)
+				oauthProvider.EXPECT().GetRepositoryPermissions(gomock.Any(), token, repo).Return(perms, nil)
 
 				sessionStore.EXPECT().CreateSession(gomock.Any(), gomock.Any(), gomock.Any()).Return("session-id-123", nil)
 
@@ -392,7 +393,8 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 					Name:  "Test User",
 				}, nil)
 
-				oauthProvider.EXPECT().CanAccessRepository(gomock.Any(), token, repo).Return(false, nil)
+				perms := domain.NewRepositoryPermissions(false, false, false, false, false)
+				oauthProvider.EXPECT().GetRepositoryPermissions(gomock.Any(), token, repo).Return(perms, nil)
 
 				return oauthProvider, sessionStore, stateStore
 			},
@@ -428,7 +430,7 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 					Name:  "Test User",
 				}, nil)
 
-				oauthProvider.EXPECT().CanAccessRepository(gomock.Any(), token, repo).Return(false, errors.New("API error"))
+				oauthProvider.EXPECT().GetRepositoryPermissions(gomock.Any(), token, repo).Return(domain.RepositoryPermissions{}, errors.New("API error"))
 
 				return oauthProvider, sessionStore, stateStore
 			},
@@ -464,7 +466,8 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 					Name:  "Test User",
 				}, nil)
 
-				oauthProvider.EXPECT().CanAccessRepository(gomock.Any(), token, repo).Return(true, nil)
+				perms := domain.NewRepositoryPermissions(false, true, true, false, false)
+				oauthProvider.EXPECT().GetRepositoryPermissions(gomock.Any(), token, repo).Return(perms, nil)
 
 				sessionStore.EXPECT().CreateSession(gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("Redis error"))
 
@@ -536,7 +539,8 @@ func TestGitHubOAuthUseCase_HandleCallback_UserInfoMapping(t *testing.T) {
 		Name:  "Test User",
 	}, nil)
 
-	oauthProvider.EXPECT().CanAccessRepository(gomock.Any(), token, repo).Return(true, nil)
+	perms := domain.NewRepositoryPermissions(false, true, true, false, false)
+	oauthProvider.EXPECT().GetRepositoryPermissions(gomock.Any(), token, repo).Return(perms, nil)
 
 	var capturedUserInfo *domain.UserInfo
 	sessionStore.EXPECT().CreateSession(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
@@ -556,7 +560,6 @@ func TestGitHubOAuthUseCase_HandleCallback_UserInfoMapping(t *testing.T) {
 		t.Fatalf("HandleCallback() unexpected error: %v", err)
 	}
 
-	// UserInfoの検証
 	ownerRepo, _ := domain.NewRepositoryIdentifier("owner/repo")
 	wantUserInfo, _ := domain.NewUserInfo(
 		"12345",
@@ -566,8 +569,10 @@ func TestGitHubOAuthUseCase_HandleCallback_UserInfoMapping(t *testing.T) {
 		ownerRepo,
 		"",
 	)
+	expectedPerms := domain.NewRepositoryPermissions(false, true, true, false, false)
+	wantUserInfo.SetPermissions(&expectedPerms)
 
-	if diff := cmp.Diff(wantUserInfo, capturedUserInfo, cmp.AllowUnexported(domain.UserInfo{}, domain.ProviderType{}, domain.RepositoryIdentifier{})); diff != "" {
+	if diff := cmp.Diff(wantUserInfo, capturedUserInfo, cmp.AllowUnexported(domain.UserInfo{}, domain.ProviderType{}, domain.RepositoryIdentifier{}, domain.RepositoryPermissions{})); diff != "" {
 		t.Errorf("UserInfo mismatch (-want +got):\n%s", diff)
 	}
 }

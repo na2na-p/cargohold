@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler/dto"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
 	"github.com/na2na-p/cargohold/internal/usecase"
@@ -53,6 +54,10 @@ func (h *BatchHandler) Handle(c echo.Context) error {
 		return SendLFSError(c, http.StatusUnprocessableEntity, "リクエストボディのパースに失敗しました")
 	}
 
+	if err := h.checkPermissions(c, reqDTO.Operation); err != nil {
+		return err
+	}
+
 	baseURL := getBaseURL(c)
 	owner := repoID.Owner()
 	repo := repoID.Name()
@@ -64,6 +69,36 @@ func (h *BatchHandler) Handle(c echo.Context) error {
 
 	c.Response().Header().Set(echo.HeaderContentType, GitLFSContentType)
 	return c.JSON(http.StatusOK, resp)
+}
+
+func (h *BatchHandler) checkPermissions(c echo.Context, operation string) error {
+	userInfoRaw := c.Get(middleware.UserInfoContextKey)
+	if userInfoRaw == nil {
+		return middleware.NewAppError(http.StatusForbidden, "認証情報が見つかりません", nil)
+	}
+
+	userInfo, ok := userInfoRaw.(*domain.UserInfo)
+	if !ok {
+		return middleware.NewAppError(http.StatusForbidden, "認証情報が見つかりません", nil)
+	}
+
+	permissions := userInfo.Permissions()
+	if permissions == nil {
+		return middleware.NewAppError(http.StatusForbidden, "このオペレーションを実行する権限がありません", nil)
+	}
+
+	switch operation {
+	case "upload":
+		if !permissions.CanUpload() {
+			return middleware.NewAppError(http.StatusForbidden, "このオペレーションを実行する権限がありません", nil)
+		}
+	case "download":
+		if !permissions.CanDownload() {
+			return middleware.NewAppError(http.StatusForbidden, "このオペレーションを実行する権限がありません", nil)
+		}
+	}
+
+	return nil
 }
 
 func getBaseURL(c echo.Context) string {

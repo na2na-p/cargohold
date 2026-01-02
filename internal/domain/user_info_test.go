@@ -98,6 +98,91 @@ func TestNewUserInfo(t *testing.T) {
 	}
 }
 
+func TestUserInfo_Permissions(t *testing.T) {
+	tests := []struct {
+		name            string
+		permissions     *domain.RepositoryPermissions
+		wantCanUpload   bool
+		wantCanDownload bool
+		wantNil         bool
+	}{
+		{
+			name:            "正常系: 権限がnilの場合、nilを返す",
+			permissions:     nil,
+			wantCanUpload:   false,
+			wantCanDownload: false,
+			wantNil:         true,
+		},
+		{
+			name: "正常系: push権限がある場合、Upload可能",
+			permissions: func() *domain.RepositoryPermissions {
+				p := domain.NewRepositoryPermissions(false, true, false, false, false)
+				return &p
+			}(),
+			wantCanUpload:   true,
+			wantCanDownload: true,
+			wantNil:         false,
+		},
+		{
+			name: "正常系: pull権限のみの場合、Downloadのみ可能",
+			permissions: func() *domain.RepositoryPermissions {
+				p := domain.NewRepositoryPermissions(false, false, true, false, false)
+				return &p
+			}(),
+			wantCanUpload:   false,
+			wantCanDownload: true,
+			wantNil:         false,
+		},
+		{
+			name: "正常系: admin権限がある場合、全て可能",
+			permissions: func() *domain.RepositoryPermissions {
+				p := domain.NewRepositoryPermissions(true, false, false, false, false)
+				return &p
+			}(),
+			wantCanUpload:   true,
+			wantCanDownload: true,
+			wantNil:         false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userInfo, err := domain.NewUserInfo(
+				"test-sub",
+				"test@example.com",
+				"testuser",
+				domain.ProviderTypeGitHub,
+				nil,
+				"",
+			)
+			if err != nil {
+				t.Fatalf("NewUserInfo failed: %v", err)
+			}
+
+			userInfo.SetPermissions(tt.permissions)
+			got := userInfo.Permissions()
+
+			if tt.wantNil {
+				if got != nil {
+					t.Errorf("UserInfo.Permissions() = %v, want nil", got)
+				}
+				return
+			}
+
+			if got == nil {
+				t.Fatalf("UserInfo.Permissions() = nil, want non-nil")
+			}
+
+			if got.CanUpload() != tt.wantCanUpload {
+				t.Errorf("Permissions.CanUpload() = %v, want %v", got.CanUpload(), tt.wantCanUpload)
+			}
+			if got.CanDownload() != tt.wantCanDownload {
+				t.Errorf("Permissions.CanDownload() = %v, want %v", got.CanDownload(), tt.wantCanDownload)
+			}
+		})
+	}
+}
+
 func TestUserInfo_Repository(t *testing.T) {
 	validRepo, _ := domain.NewRepositoryIdentifier("octocat/hello-world")
 	anotherRepo, _ := domain.NewRepositoryIdentifier("user123/repo456")
