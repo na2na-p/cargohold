@@ -240,6 +240,8 @@ func run() error {
 		slog.Info("GitHub OAuth routes registered")
 	}
 
+	e.GET("/auth/session", auth.SessionDisplayHandler())
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort

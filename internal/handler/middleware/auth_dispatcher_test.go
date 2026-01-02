@@ -1,6 +1,7 @@
 package middleware_test
 
 import (
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -291,6 +292,109 @@ func TestAuthDispatcher(t *testing.T) {
 				},
 			},
 			wantStatusCode: http.StatusBadRequest,
+			wantNextCalled: false,
+		},
+		{
+			name: "正常系: Basic認証でusernameがx-sessionかつセッションIDが有効な場合、nextが呼ばれる",
+			fields: fields{
+				setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_middleware.MockAuthUseCaseInterface {
+					mock := mock_middleware.NewMockAuthUseCaseInterface(ctrl)
+					mock.EXPECT().
+						AuthenticateSession(gomock.Any(), "valid-session-id").
+						Return(mustNewUserInfo(t,
+							"user123",
+							"",
+							"testuser",
+							domain.ProviderTypeGitHub,
+							mustParseRepo(t, "testowner/testrepo"),
+							"",
+						), nil)
+					return mock
+				},
+			},
+			args: args{
+				method: http.MethodPost,
+				path:   "/testowner/testrepo/info/lfs/objects/batch",
+				owner:  "testowner",
+				repo:   "testrepo",
+				headers: map[string]string{
+					"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte("x-session:valid-session-id")),
+				},
+			},
+			wantStatusCode: http.StatusOK,
+			wantNextCalled: true,
+		},
+		{
+			name: "異常系: Basic認証でusernameがx-sessionでない場合、401が返る",
+			fields: fields{
+				setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_middleware.MockAuthUseCaseInterface {
+					mock := mock_middleware.NewMockAuthUseCaseInterface(ctrl)
+					return mock
+				},
+			},
+			args: args{
+				method: http.MethodPost,
+				path:   "/testowner/testrepo/info/lfs/objects/batch",
+				owner:  "testowner",
+				repo:   "testrepo",
+				headers: map[string]string{
+					"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte("wronguser:valid-session-id")),
+				},
+			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantNextCalled: false,
+		},
+		{
+			name: "異常系: Basic認証でセッションIDが無効な場合、401が返る",
+			fields: fields{
+				setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_middleware.MockAuthUseCaseInterface {
+					mock := mock_middleware.NewMockAuthUseCaseInterface(ctrl)
+					mock.EXPECT().
+						AuthenticateSession(gomock.Any(), "invalid-session-id").
+						Return(nil, errors.New("session not found"))
+					return mock
+				},
+			},
+			args: args{
+				method: http.MethodPost,
+				path:   "/testowner/testrepo/info/lfs/objects/batch",
+				owner:  "testowner",
+				repo:   "testrepo",
+				headers: map[string]string{
+					"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte("x-session:invalid-session-id")),
+				},
+			},
+			wantStatusCode: http.StatusUnauthorized,
+			wantNextCalled: false,
+		},
+		{
+			name: "異常系: Basic認証でリポジトリが不一致の場合、403が返る",
+			fields: fields{
+				setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_middleware.MockAuthUseCaseInterface {
+					mock := mock_middleware.NewMockAuthUseCaseInterface(ctrl)
+					mock.EXPECT().
+						AuthenticateSession(gomock.Any(), "valid-session-id").
+						Return(mustNewUserInfo(t,
+							"user123",
+							"",
+							"testuser",
+							domain.ProviderTypeGitHub,
+							mustParseRepo(t, "otherowner/otherrepo"),
+							"",
+						), nil)
+					return mock
+				},
+			},
+			args: args{
+				method: http.MethodPost,
+				path:   "/testowner/testrepo/info/lfs/objects/batch",
+				owner:  "testowner",
+				repo:   "testrepo",
+				headers: map[string]string{
+					"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte("x-session:valid-session-id")),
+				},
+			},
+			wantStatusCode: http.StatusForbidden,
 			wantNextCalled: false,
 		},
 	}
