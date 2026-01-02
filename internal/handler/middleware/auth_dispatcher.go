@@ -3,6 +3,7 @@ package middleware
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"strings"
@@ -40,6 +41,25 @@ func AuthDispatcher(authUC AuthUseCaseInterface) echo.MiddlewareFunc {
 				}
 				c.Set(UserInfoContextKey, userInfo)
 				return next(c)
+			}
+
+			if strings.HasPrefix(authHeader, "Basic ") {
+				credentials := strings.TrimPrefix(authHeader, "Basic ")
+				decoded, err := base64.StdEncoding.DecodeString(credentials)
+				if err == nil {
+					parts := strings.SplitN(string(decoded), ":", 2)
+					if len(parts) == 2 && parts[0] == "x-session" {
+						sessionID := parts[1]
+						userInfo, err := authUC.AuthenticateSession(ctx, sessionID)
+						if err == nil {
+							if err := validateRepository(c, userInfo); err != nil {
+								return err
+							}
+							c.Set(UserInfoContextKey, userInfo)
+							return next(c)
+						}
+					}
+				}
 			}
 
 			cookie, err := c.Cookie(common.LFSSessionCookieName)

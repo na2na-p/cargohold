@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"net/http"
+	"net/url"
 
 	"github.com/labstack/echo/v4"
 	"github.com/na2na-p/cargohold/internal/handler/common"
@@ -48,7 +49,9 @@ func GitHubCallbackHandler(githubOAuthUC GitHubOAuthUseCaseInterface) echo.Handl
 		}
 		c.SetCookie(cookie)
 
-		return c.Redirect(http.StatusFound, "/")
+		host := c.Request().Host
+		redirectURL := "/auth/session?id=" + sessionID + "&host=" + url.QueryEscape(host)
+		return c.Redirect(http.StatusFound, redirectURL)
 	}
 }
 

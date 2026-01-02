@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	neturl "net/url"
+	"strings"
 	"testing"
 
 	"github.com/labstack/echo/v4"
@@ -21,13 +23,15 @@ func TestGitHubCallbackHandler(t *testing.T) {
 		state string
 	}
 	tests := []struct {
-		name               string
-		args               args
-		setupMock          func(ctrl *gomock.Controller) *mockauth.MockGitHubOAuthUseCaseInterface
-		expectedStatus     int
-		expectCookie       bool
-		expectedCookieName string
-		wantAppError       bool
+		name                     string
+		args                     args
+		host                     string
+		setupMock                func(ctrl *gomock.Controller) *mockauth.MockGitHubOAuthUseCaseInterface
+		expectedStatus           int
+		expectCookie             bool
+		expectedCookieName       string
+		expectedRedirectLocation string
+		wantAppError             bool
 	}{
 		{
 			name: "正常系: コールバック処理が成功しセッションCookieが設定される",
@@ -35,6 +39,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 				code:  "valid-auth-code",
 				state: "valid-state",
 			},
+			host: "example.com",
 			setupMock: func(ctrl *gomock.Controller) *mockauth.MockGitHubOAuthUseCaseInterface {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
@@ -42,10 +47,11 @@ func TestGitHubCallbackHandler(t *testing.T) {
 					Return("session-id-12345", nil)
 				return m
 			},
-			expectedStatus:     http.StatusFound,
-			expectCookie:       true,
-			expectedCookieName: "lfs_session",
-			wantAppError:       false,
+			expectedStatus:           http.StatusFound,
+			expectCookie:             true,
+			expectedCookieName:       "lfs_session",
+			expectedRedirectLocation: "/auth/session?id=session-id-12345&host=example.com",
+			wantAppError:             false,
 		},
 		{
 			name: "異常系: codeパラメータが空の場合はBadRequestを返す",
@@ -178,6 +184,9 @@ func TestGitHubCallbackHandler(t *testing.T) {
 			}
 
 			req := httptest.NewRequest(http.MethodGet, url, nil)
+			if tt.host != "" {
+				req.Host = tt.host
+			}
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
@@ -203,6 +212,27 @@ func TestGitHubCallbackHandler(t *testing.T) {
 				}
 				if rec.Code != tt.expectedStatus {
 					t.Errorf("expected status %d, got %d", tt.expectedStatus, rec.Code)
+				}
+
+				if tt.expectedRedirectLocation != "" {
+					location := rec.Header().Get("Location")
+					expectedParsed, _ := neturl.Parse(tt.expectedRedirectLocation)
+					actualParsed, _ := neturl.Parse(location)
+
+					if actualParsed.Path != expectedParsed.Path {
+						t.Errorf("expected redirect path %s, got %s", expectedParsed.Path, actualParsed.Path)
+					}
+
+					expectedParams := expectedParsed.Query()
+					actualParams := actualParsed.Query()
+
+					if actualParams.Get("id") != expectedParams.Get("id") {
+						t.Errorf("expected id param %s, got %s", expectedParams.Get("id"), actualParams.Get("id"))
+					}
+
+					if !strings.Contains(actualParams.Get("host"), expectedParams.Get("host")) {
+						t.Errorf("expected host param to contain %s, got %s", expectedParams.Get("host"), actualParams.Get("host"))
+					}
 				}
 			}
 
