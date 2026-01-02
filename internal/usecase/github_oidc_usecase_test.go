@@ -291,7 +291,6 @@ func TestGitHubOIDCUseCase_Authenticate(t *testing.T) {
 	}
 }
 
-
 func mustNewUserInfoWithFullPermissions(t *testing.T, sub, email, name string, provider domain.ProviderType, repository *domain.RepositoryIdentifier, ref string) *domain.UserInfo {
 	t.Helper()
 	userInfo, err := domain.NewUserInfo(sub, email, name, provider, repository, ref)
