@@ -172,6 +172,7 @@ func TestCustomHTTPErrorHandler(t *testing.T) {
 	type want struct {
 		statusCode  int
 		bodyContain string
+		contentType string
 		logLevel    slog.Level
 		logCalled   bool
 	}
@@ -192,6 +193,7 @@ func TestCustomHTTPErrorHandler(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				bodyContain: "バリデーションエラー",
+				contentType: "application/vnd.git-lfs+json",
 				logLevel:    slog.LevelWarn,
 				logCalled:   true,
 			},
@@ -208,6 +210,7 @@ func TestCustomHTTPErrorHandler(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusNotFound,
 				bodyContain: "Not Found",
+				contentType: "application/vnd.git-lfs+json",
 				logLevel:    slog.LevelWarn,
 				logCalled:   true,
 			},
@@ -224,6 +227,7 @@ func TestCustomHTTPErrorHandler(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusInternalServerError,
 				bodyContain: "サーバー内部エラーが発生しました",
+				contentType: "application/vnd.git-lfs+json",
 				logLevel:    slog.LevelError,
 				logCalled:   true,
 			},
@@ -240,6 +244,7 @@ func TestCustomHTTPErrorHandler(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusServiceUnavailable,
 				bodyContain: "サービス利用不可",
+				contentType: "application/vnd.git-lfs+json",
 				logLevel:    slog.LevelError,
 				logCalled:   true,
 			},
@@ -256,6 +261,7 @@ func TestCustomHTTPErrorHandler(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusUnauthorized,
 				bodyContain: "認証が必要です",
+				contentType: "application/vnd.git-lfs+json",
 				logLevel:    slog.LevelWarn,
 				logCalled:   true,
 			},
@@ -272,6 +278,7 @@ func TestCustomHTTPErrorHandler(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusOK,
 				bodyContain: "",
+				contentType: "",
 				logLevel:    0,
 				logCalled:   false,
 			},
@@ -288,6 +295,41 @@ func TestCustomHTTPErrorHandler(t *testing.T) {
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				bodyContain: "サーバー内部エラーが発生しました",
+				contentType: "application/vnd.git-lfs+json",
+				logLevel:    slog.LevelWarn,
+				logCalled:   true,
+			},
+		},
+		{
+			name: "正常系: /auth/パスでAppErrorの場合、JSON形式でエラーが返される",
+			args: args{
+				err:       middleware.NewAppError(http.StatusUnauthorized, "認証に失敗しました", errors.New("auth failed")),
+				committed: false,
+				requestID: "req-auth-json",
+				method:    http.MethodGet,
+				path:      "/auth/github/callback",
+			},
+			want: want{
+				statusCode:  http.StatusUnauthorized,
+				bodyContain: `"error":"認証に失敗しました"`,
+				contentType: "application/json",
+				logLevel:    slog.LevelWarn,
+				logCalled:   true,
+			},
+		},
+		{
+			name: "正常系: /auth/パスでecho.HTTPErrorの場合、JSON形式でエラーが返される",
+			args: args{
+				err:       echo.NewHTTPError(http.StatusForbidden, "アクセスが拒否されました"),
+				committed: false,
+				requestID: "req-auth-http-err",
+				method:    http.MethodGet,
+				path:      "/auth/callback",
+			},
+			want: want{
+				statusCode:  http.StatusForbidden,
+				bodyContain: `"error":"アクセスが拒否されました"`,
+				contentType: "application/json",
 				logLevel:    slog.LevelWarn,
 				logCalled:   true,
 			},
@@ -331,9 +373,8 @@ func TestCustomHTTPErrorHandler(t *testing.T) {
 			}
 
 			contentType := rec.Header().Get(echo.HeaderContentType)
-			wantContentType := "application/vnd.git-lfs+json"
-			if contentType != wantContentType {
-				t.Errorf("CustomHTTPErrorHandler() Content-Type = %v, want %v", contentType, wantContentType)
+			if tt.want.contentType != "" && contentType != tt.want.contentType {
+				t.Errorf("CustomHTTPErrorHandler() Content-Type = %v, want %v", contentType, tt.want.contentType)
 			}
 
 			if tt.want.logCalled {

@@ -73,36 +73,27 @@ func TestNewGitHubOAuthProvider(t *testing.T) {
 
 func TestGitHubOAuthProvider_GetAuthorizationURL(t *testing.T) {
 	tests := []struct {
-		name           string
-		state          string
-		scopes         []string
-		wantContains   []string
-		wantNotContain []string
+		name         string
+		state        string
+		wantContains []string
 	}{
 		{
-			name:   "正常系: 基本的なスコープでURLが生成される",
-			state:  "test-state-123",
-			scopes: []string{"read:user", "repo"},
+			name:  "正常系: stateを指定してURLが生成される",
+			state: "test-state-123",
 			wantContains: []string{
 				"https://github.com/login/oauth/authorize",
 				"client_id=test-client-id",
 				"redirect_uri=",
 				"state=test-state-123",
-				"scope=read%3Auser+repo",
 			},
-			wantNotContain: []string{},
 		},
 		{
-			name:   "正常系: スコープが空の場合もURLが生成される",
-			state:  "test-state-456",
-			scopes: []string{},
+			name:  "正常系: 別のstateでもURLが生成される",
+			state: "test-state-456",
 			wantContains: []string{
 				"https://github.com/login/oauth/authorize",
 				"client_id=test-client-id",
 				"state=test-state-456",
-			},
-			wantNotContain: []string{
-				"scope=",
 			},
 		},
 	}
@@ -114,17 +105,11 @@ func TestGitHubOAuthProvider_GetAuthorizationURL(t *testing.T) {
 				t.Fatalf("プロバイダー作成に失敗: %v", err)
 			}
 
-			authURL := provider.GetAuthorizationURL(tt.state, tt.scopes)
+			authURL := provider.GetAuthorizationURL(tt.state)
 
 			for _, want := range tt.wantContains {
 				if !containsString(authURL, want) {
 					t.Errorf("URL に %q が含まれていません: %s", want, authURL)
-				}
-			}
-
-			for _, notWant := range tt.wantNotContain {
-				if containsString(authURL, notWant) {
-					t.Errorf("URL に %q が含まれるべきではありません: %s", notWant, authURL)
 				}
 			}
 		})

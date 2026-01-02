@@ -9,4 +9,5 @@ import (
 
 type RepositoryChecker interface {
 	CanAccessRepository(ctx context.Context, token *oauthToken, repo *domain.RepositoryIdentifier) (bool, error)
+	GetRepositoryPermissions(ctx context.Context, token *oauthToken, repo *domain.RepositoryIdentifier) (domain.RepositoryPermissions, error)
 }

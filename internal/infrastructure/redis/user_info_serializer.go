@@ -25,12 +25,17 @@ type GitHubUserInfoSerializer interface {
 }
 
 type userInfoDTO struct {
-	Sub        string              `json:"sub"`
-	Email      string              `json:"email"`
-	Name       string              `json:"name"`
-	Provider   domain.ProviderType `json:"provider"`
-	Repository string              `json:"repository,omitempty"`
-	Ref        string              `json:"ref,omitempty"`
+	Sub          string              `json:"sub"`
+	Email        string              `json:"email"`
+	Name         string              `json:"name"`
+	Provider     domain.ProviderType `json:"provider"`
+	Repository   string              `json:"repository,omitempty"`
+	Ref          string              `json:"ref,omitempty"`
+	PermAdmin    bool                `json:"perm_admin,omitempty"`
+	PermPush     bool                `json:"perm_push,omitempty"`
+	PermPull     bool                `json:"perm_pull,omitempty"`
+	PermMaintain bool                `json:"perm_maintain,omitempty"`
+	PermTriage   bool                `json:"perm_triage,omitempty"`
 }
 
 type gitHubUserInfoDTO struct {
@@ -65,6 +70,14 @@ func (s *userInfoSerializerImpl) Serialize(userInfo *domain.UserInfo) ([]byte, e
 		Ref:        userInfo.Ref(),
 	}
 
+	if perms := userInfo.Permissions(); perms != nil {
+		dto.PermAdmin = perms.Admin()
+		dto.PermPush = perms.Push()
+		dto.PermPull = perms.Pull()
+		dto.PermMaintain = perms.Maintain()
+		dto.PermTriage = perms.Triage()
+	}
+
 	data, err := json.Marshal(dto)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal UserInfo: %w", err)
@@ -87,7 +100,7 @@ func (s *userInfoSerializerImpl) Deserialize(data []byte) (*domain.UserInfo, err
 		}
 	}
 
-	return domain.NewUserInfo(
+	userInfo, err := domain.NewUserInfo(
 		dto.Sub,
 		dto.Email,
 		dto.Name,
@@ -95,6 +108,22 @@ func (s *userInfoSerializerImpl) Deserialize(data []byte) (*domain.UserInfo, err
 		repo,
 		dto.Ref,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	if dto.PermAdmin || dto.PermPush || dto.PermPull || dto.PermMaintain || dto.PermTriage {
+		perms := domain.NewRepositoryPermissions(
+			dto.PermAdmin,
+			dto.PermPush,
+			dto.PermPull,
+			dto.PermMaintain,
+			dto.PermTriage,
+		)
+		userInfo.SetPermissions(&perms)
+	}
+
+	return userInfo, nil
 }
 
 type gitHubUserInfoSerializerImpl struct{}

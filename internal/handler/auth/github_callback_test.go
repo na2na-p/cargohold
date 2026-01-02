@@ -9,6 +9,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/na2na-p/cargohold/internal/handler/auth"
+	"github.com/na2na-p/cargohold/internal/handler/middleware"
 	"github.com/na2na-p/cargohold/internal/usecase"
 	mockauth "github.com/na2na-p/cargohold/tests/handler/auth"
 	"go.uber.org/mock/gomock"
@@ -26,6 +27,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 		expectedStatus     int
 		expectCookie       bool
 		expectedCookieName string
+		wantAppError       bool
 	}{
 		{
 			name: "正常系: コールバック処理が成功しセッションCookieが設定される",
@@ -43,6 +45,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 			expectedStatus:     http.StatusFound,
 			expectCookie:       true,
 			expectedCookieName: "lfs_session",
+			wantAppError:       false,
 		},
 		{
 			name: "異常系: codeパラメータが空の場合はBadRequestを返す",
@@ -55,6 +58,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectCookie:   false,
+			wantAppError:   true,
 		},
 		{
 			name: "異常系: stateパラメータが空の場合はBadRequestを返す",
@@ -67,6 +71,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectCookie:   false,
+			wantAppError:   true,
 		},
 		{
 			name: "異常系: codeとstateの両方が空の場合はBadRequestを返す",
@@ -79,6 +84,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectCookie:   false,
+			wantAppError:   true,
 		},
 		{
 			name: "異常系: state検証が失敗した場合はUnauthorizedを返す",
@@ -95,6 +101,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectCookie:   false,
+			wantAppError:   true,
 		},
 		{
 			name: "異常系: リポジトリアクセス権がない場合はForbiddenを返す",
@@ -111,6 +118,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusForbidden,
 			expectCookie:   false,
+			wantAppError:   true,
 		},
 		{
 			name: "異常系: コード交換が失敗した場合はUnauthorizedを返す",
@@ -127,6 +135,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectCookie:   false,
+			wantAppError:   true,
 		},
 		{
 			name: "異常系: その他のエラーの場合はInternalServerErrorを返す",
@@ -143,6 +152,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectCookie:   false,
+			wantAppError:   true,
 		},
 	}
 
@@ -175,12 +185,25 @@ func TestGitHubCallbackHandler(t *testing.T) {
 			handler := auth.GitHubCallbackHandler(mockUC)
 
 			err := handler(c)
-			if err != nil {
-				t.Fatalf("handler returned error: %v", err)
-			}
 
-			if rec.Code != tt.expectedStatus {
-				t.Errorf("expected status %d, got %d", tt.expectedStatus, rec.Code)
+			if tt.wantAppError {
+				if err == nil {
+					t.Fatal("expected AppError, got nil")
+				}
+				appErr, ok := err.(*middleware.AppError)
+				if !ok {
+					t.Fatalf("expected *middleware.AppError, got %T", err)
+				}
+				if appErr.StatusCode != tt.expectedStatus {
+					t.Errorf("expected status %d, got %d", tt.expectedStatus, appErr.StatusCode)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("handler returned error: %v", err)
+				}
+				if rec.Code != tt.expectedStatus {
+					t.Errorf("expected status %d, got %d", tt.expectedStatus, rec.Code)
+				}
 			}
 
 			if tt.expectCookie {

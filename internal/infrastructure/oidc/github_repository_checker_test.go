@@ -164,3 +164,245 @@ func mustNewRepositoryIdentifierForChecker(t *testing.T, fullName string) *domai
 	}
 	return repo
 }
+
+func TestGitHubRepositoryChecker_GetRepositoryPermissions(t *testing.T) {
+	tests := []struct {
+		name           string
+		token          *oauthToken
+		repo           *domain.RepositoryIdentifier
+		serverResponse func(w http.ResponseWriter, r *http.Request)
+		wantCanUpload  bool
+		wantCanDown    bool
+		wantErr        bool
+	}{
+		{
+			name: "正常系: admin権限がある場合",
+			token: &oauthToken{
+				AccessToken: "gho_valid_token",
+				TokenType:   "bearer",
+			},
+			repo: mustNewRepositoryIdentifierForChecker(t, "owner/repo"),
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"id":        1,
+					"full_name": "owner/repo",
+					"permissions": map[string]bool{
+						"admin":    true,
+						"maintain": false,
+						"push":     true,
+						"triage":   false,
+						"pull":     true,
+					},
+				})
+			},
+			wantCanUpload: true,
+			wantCanDown:   true,
+			wantErr:       false,
+		},
+		{
+			name: "正常系: push権限のみの場合",
+			token: &oauthToken{
+				AccessToken: "gho_valid_token",
+				TokenType:   "bearer",
+			},
+			repo: mustNewRepositoryIdentifierForChecker(t, "owner/repo"),
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"id":        1,
+					"full_name": "owner/repo",
+					"permissions": map[string]bool{
+						"admin":    false,
+						"maintain": false,
+						"push":     true,
+						"triage":   false,
+						"pull":     true,
+					},
+				})
+			},
+			wantCanUpload: true,
+			wantCanDown:   true,
+			wantErr:       false,
+		},
+		{
+			name: "正常系: pull権限のみの場合",
+			token: &oauthToken{
+				AccessToken: "gho_valid_token",
+				TokenType:   "bearer",
+			},
+			repo: mustNewRepositoryIdentifierForChecker(t, "owner/repo"),
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"id":        1,
+					"full_name": "owner/repo",
+					"permissions": map[string]bool{
+						"admin":    false,
+						"maintain": false,
+						"push":     false,
+						"triage":   false,
+						"pull":     true,
+					},
+				})
+			},
+			wantCanUpload: false,
+			wantCanDown:   true,
+			wantErr:       false,
+		},
+		{
+			name: "正常系: triage権限のみの場合",
+			token: &oauthToken{
+				AccessToken: "gho_valid_token",
+				TokenType:   "bearer",
+			},
+			repo: mustNewRepositoryIdentifierForChecker(t, "owner/repo"),
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"id":        1,
+					"full_name": "owner/repo",
+					"permissions": map[string]bool{
+						"admin":    false,
+						"maintain": false,
+						"push":     false,
+						"triage":   true,
+						"pull":     false,
+					},
+				})
+			},
+			wantCanUpload: false,
+			wantCanDown:   true,
+			wantErr:       false,
+		},
+		{
+			name: "正常系: maintain権限のみの場合",
+			token: &oauthToken{
+				AccessToken: "gho_valid_token",
+				TokenType:   "bearer",
+			},
+			repo: mustNewRepositoryIdentifierForChecker(t, "owner/repo"),
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"id":        1,
+					"full_name": "owner/repo",
+					"permissions": map[string]bool{
+						"admin":    false,
+						"maintain": true,
+						"push":     false,
+						"triage":   false,
+						"pull":     false,
+					},
+				})
+			},
+			wantCanUpload: true,
+			wantCanDown:   true,
+			wantErr:       false,
+		},
+		{
+			name:  "異常系: トークンがnilの場合",
+			token: nil,
+			repo:  mustNewRepositoryIdentifierForChecker(t, "owner/repo"),
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+			},
+			wantCanUpload: false,
+			wantCanDown:   false,
+			wantErr:       true,
+		},
+		{
+			name: "異常系: リポジトリがnilの場合",
+			token: &oauthToken{
+				AccessToken: "gho_valid_token",
+				TokenType:   "bearer",
+			},
+			repo: nil,
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+			},
+			wantCanUpload: false,
+			wantCanDown:   false,
+			wantErr:       true,
+		},
+		{
+			name: "異常系: AccessTokenが空の場合",
+			token: &oauthToken{
+				AccessToken: "",
+				TokenType:   "bearer",
+			},
+			repo: mustNewRepositoryIdentifierForChecker(t, "owner/repo"),
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+			},
+			wantCanUpload: false,
+			wantCanDown:   false,
+			wantErr:       true,
+		},
+		{
+			name: "異常系: リポジトリが見つからない場合",
+			token: &oauthToken{
+				AccessToken: "gho_valid_token",
+				TokenType:   "bearer",
+			},
+			repo: mustNewRepositoryIdentifierForChecker(t, "owner/not-found-repo"),
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusNotFound)
+				_ = json.NewEncoder(w).Encode(map[string]string{
+					"message": "Not Found",
+				})
+			},
+			wantCanUpload: false,
+			wantCanDown:   false,
+			wantErr:       true,
+		},
+		{
+			name: "異常系: サーバーエラーの場合",
+			token: &oauthToken{
+				AccessToken: "gho_valid_token",
+				TokenType:   "bearer",
+			},
+			repo: mustNewRepositoryIdentifierForChecker(t, "owner/repo"),
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+			},
+			wantCanUpload: false,
+			wantCanDown:   false,
+			wantErr:       true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(tt.serverResponse))
+			defer server.Close()
+
+			checker := NewGitHubRepositoryChecker()
+			checker.SetAPIEndpoint(server.URL)
+
+			ctx := context.Background()
+			got, err := checker.GetRepositoryPermissions(ctx, tt.token, tt.repo)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("エラーが期待されましたが、nilが返りました")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("エラーは期待されていませんでしたが、%v が返りました", err)
+			}
+
+			if got.CanUpload() != tt.wantCanUpload {
+				t.Errorf("CanUpload()が一致しません: want=%v, got=%v", tt.wantCanUpload, got.CanUpload())
+			}
+
+			if got.CanDownload() != tt.wantCanDown {
+				t.Errorf("CanDownload()が一致しません: want=%v, got=%v", tt.wantCanDown, got.CanDownload())
+			}
+		})
+	}
+}

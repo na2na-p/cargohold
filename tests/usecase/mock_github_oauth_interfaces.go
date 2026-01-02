@@ -74,17 +74,32 @@ func (mr *MockGitHubOAuthProviderInterfaceMockRecorder) ExchangeCode(ctx, code a
 }
 
 // GetAuthorizationURL mocks base method.
-func (m *MockGitHubOAuthProviderInterface) GetAuthorizationURL(state string, scopes []string) string {
+func (m *MockGitHubOAuthProviderInterface) GetAuthorizationURL(state string) string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAuthorizationURL", state, scopes)
+	ret := m.ctrl.Call(m, "GetAuthorizationURL", state)
 	ret0, _ := ret[0].(string)
 	return ret0
 }
 
 // GetAuthorizationURL indicates an expected call of GetAuthorizationURL.
-func (mr *MockGitHubOAuthProviderInterfaceMockRecorder) GetAuthorizationURL(state, scopes any) *gomock.Call {
+func (mr *MockGitHubOAuthProviderInterfaceMockRecorder) GetAuthorizationURL(state any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorizationURL", reflect.TypeOf((*MockGitHubOAuthProviderInterface)(nil).GetAuthorizationURL), state, scopes)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorizationURL", reflect.TypeOf((*MockGitHubOAuthProviderInterface)(nil).GetAuthorizationURL), state)
+}
+
+// GetRepositoryPermissions mocks base method.
+func (m *MockGitHubOAuthProviderInterface) GetRepositoryPermissions(ctx context.Context, token *usecase.OAuthTokenResult, repo *domain.RepositoryIdentifier) (domain.RepositoryPermissions, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRepositoryPermissions", ctx, token, repo)
+	ret0, _ := ret[0].(domain.RepositoryPermissions)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRepositoryPermissions indicates an expected call of GetRepositoryPermissions.
+func (mr *MockGitHubOAuthProviderInterfaceMockRecorder) GetRepositoryPermissions(ctx, token, repo any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRepositoryPermissions", reflect.TypeOf((*MockGitHubOAuthProviderInterface)(nil).GetRepositoryPermissions), ctx, token, repo)
 }
 
 // GetUserInfo mocks base method.
