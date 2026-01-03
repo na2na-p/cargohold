@@ -200,7 +200,7 @@ func run() error {
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
 			attrs := []slog.Attr{
 				slog.String("method", v.Method),
-				slog.String("uri", v.URI),
+				slog.String("uri", authMiddleware.MaskSensitiveParams(v.URI)),
 				slog.Int("status", v.Status),
 				slog.Duration("latency", v.Latency),
 			}

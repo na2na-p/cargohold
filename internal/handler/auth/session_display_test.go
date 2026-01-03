@@ -13,8 +13,8 @@ import (
 
 func TestSessionDisplayHandler(t *testing.T) {
 	type args struct {
-		id   string
-		host string
+		sessionID string
+		host      string
 	}
 	tests := []struct {
 		name             string
@@ -26,8 +26,8 @@ func TestSessionDisplayHandler(t *testing.T) {
 		{
 			name: "正常系: セッションIDとホストが指定された場合、HTMLが返却される",
 			args: args{
-				id:   "test-session-id-12345",
-				host: "cargohold.example.com",
+				sessionID: "test-session-id-12345",
+				host:      "cargohold.example.com",
 			},
 			expectedStatus: http.StatusOK,
 			wantAppError:   false,
@@ -41,10 +41,10 @@ func TestSessionDisplayHandler(t *testing.T) {
 			},
 		},
 		{
-			name: "異常系: idパラメータが空の場合はBadRequestを返す",
+			name: "異常系: session_idパラメータが空の場合はBadRequestを返す",
 			args: args{
-				id:   "",
-				host: "cargohold.example.com",
+				sessionID: "",
+				host:      "cargohold.example.com",
 			},
 			expectedStatus: http.StatusBadRequest,
 			wantAppError:   true,
@@ -52,17 +52,17 @@ func TestSessionDisplayHandler(t *testing.T) {
 		{
 			name: "異常系: hostパラメータが空の場合はBadRequestを返す",
 			args: args{
-				id:   "test-session-id-12345",
-				host: "",
+				sessionID: "test-session-id-12345",
+				host:      "",
 			},
 			expectedStatus: http.StatusBadRequest,
 			wantAppError:   true,
 		},
 		{
-			name: "異常系: idとhostの両方が空の場合はBadRequestを返す",
+			name: "異常系: session_idとhostの両方が空の場合はBadRequestを返す",
 			args: args{
-				id:   "",
-				host: "",
+				sessionID: "",
+				host:      "",
 			},
 			expectedStatus: http.StatusBadRequest,
 			wantAppError:   true,
@@ -75,8 +75,8 @@ func TestSessionDisplayHandler(t *testing.T) {
 
 			url := "/auth/session"
 			queryParams := ""
-			if tt.args.id != "" {
-				queryParams += "id=" + tt.args.id
+			if tt.args.sessionID != "" {
+				queryParams += "session_id=" + tt.args.sessionID
 			}
 			if tt.args.host != "" {
 				if queryParams != "" {
