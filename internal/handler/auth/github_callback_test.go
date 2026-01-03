@@ -50,7 +50,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 			expectedStatus:           http.StatusFound,
 			expectCookie:             true,
 			expectedCookieName:       "lfs_session",
-			expectedRedirectLocation: "/auth/session?id=session-id-12345&host=example.com",
+			expectedRedirectLocation: "/auth/session?session_id=session-id-12345&host=example.com",
 			wantAppError:             false,
 		},
 		{
@@ -226,8 +226,8 @@ func TestGitHubCallbackHandler(t *testing.T) {
 					expectedParams := expectedParsed.Query()
 					actualParams := actualParsed.Query()
 
-					if actualParams.Get("id") != expectedParams.Get("id") {
-						t.Errorf("expected id param %s, got %s", expectedParams.Get("id"), actualParams.Get("id"))
+					if actualParams.Get("session_id") != expectedParams.Get("session_id") {
+						t.Errorf("expected session_id param %s, got %s", expectedParams.Get("session_id"), actualParams.Get("session_id"))
 					}
 
 					if !strings.Contains(actualParams.Get("host"), expectedParams.Get("host")) {

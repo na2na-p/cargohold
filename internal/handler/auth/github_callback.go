@@ -50,7 +50,7 @@ func GitHubCallbackHandler(githubOAuthUC GitHubOAuthUseCaseInterface) echo.Handl
 		c.SetCookie(cookie)
 
 		host := c.Request().Host
-		redirectURL := "/auth/session?id=" + sessionID + "&host=" + url.QueryEscape(host)
+		redirectURL := "/auth/session?session_id=" + sessionID + "&host=" + url.QueryEscape(host)
 		return c.Redirect(http.StatusFound, redirectURL)
 	}
 }

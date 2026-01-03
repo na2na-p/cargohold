@@ -11,12 +11,12 @@ import (
 
 func SessionDisplayHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		sessionID := c.QueryParam("id")
+		sessionID := c.QueryParam("session_id")
 		if sessionID == "" {
 			return middleware.NewAppError(
 				http.StatusBadRequest,
-				"idパラメータが指定されていません",
-				errors.New("id parameter is empty"),
+				"session_idパラメータが指定されていません",
+				errors.New("session_id parameter is empty"),
 			)
 		}
 
