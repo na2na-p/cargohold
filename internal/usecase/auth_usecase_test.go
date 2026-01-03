@@ -29,8 +29,7 @@ func TestAuthUseCase_AuthenticateSession(t *testing.T) {
 		sessionID string
 	}
 	type mockFields struct {
-		redisClient  *mock_usecase.MockCacheClient
-		keyGenerator *mock_usecase.MockCacheKeyGenerator
+		sessionClient *mock_usecase.MockSessionClient
 	}
 	tests := []struct {
 		name       string
@@ -42,24 +41,10 @@ func TestAuthUseCase_AuthenticateSession(t *testing.T) {
 		{
 			name: "正常系: セッションが存在する場合、ユーザー情報を返す",
 			setupMocks: func(ctrl *gomock.Controller) mockFields {
-				redisClient := mock_usecase.NewMockCacheClient(ctrl)
-				keyGenerator := mock_usecase.NewMockCacheKeyGenerator(ctrl)
-				keyGenerator.EXPECT().SessionKey(gomock.Any()).Return("lfs:session:test-session-id")
-				redisClient.EXPECT().GetJSON(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-					func(ctx context.Context, key string, dest interface{}) error {
-						sessionData := &usecase.SessionData{
-							Sub:      "test-sub",
-							Email:    "test@example.com",
-							Name:     "Test User",
-							Provider: "github",
-						}
-						if m, ok := dest.(*usecase.SessionData); ok {
-							*m = *sessionData
-						}
-						return nil
-					},
-				)
-				return mockFields{redisClient: redisClient, keyGenerator: keyGenerator}
+				sessionClient := mock_usecase.NewMockSessionClient(ctrl)
+				expectedUserInfo := mustNewUserInfo(t, "test-sub", "test@example.com", "Test User", domain.ProviderTypeGitHub, nil, "")
+				sessionClient.EXPECT().GetSession(gomock.Any(), "test-session-id").Return(expectedUserInfo, nil)
+				return mockFields{sessionClient: sessionClient}
 			},
 			args: args{
 				sessionID: "test-session-id",
@@ -70,26 +55,17 @@ func TestAuthUseCase_AuthenticateSession(t *testing.T) {
 		{
 			name: "正常系: GitHub Actionsセッションが存在する場合、リポジトリ情報を含むユーザー情報を返す",
 			setupMocks: func(ctrl *gomock.Controller) mockFields {
-				redisClient := mock_usecase.NewMockCacheClient(ctrl)
-				keyGenerator := mock_usecase.NewMockCacheKeyGenerator(ctrl)
-				keyGenerator.EXPECT().SessionKey(gomock.Any()).Return("lfs:session:github-session-id")
-				redisClient.EXPECT().GetJSON(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-					func(ctx context.Context, key string, dest interface{}) error {
-						sessionData := &usecase.SessionData{
-							Sub:        "repo:owner/repo:ref:refs/heads/main",
-							Email:      "",
-							Name:       "github-actor",
-							Provider:   "github",
-							Repository: "owner/repo",
-							Ref:        "refs/heads/main",
-						}
-						if m, ok := dest.(*usecase.SessionData); ok {
-							*m = *sessionData
-						}
-						return nil
-					},
+				sessionClient := mock_usecase.NewMockSessionClient(ctrl)
+				expectedUserInfo := mustNewUserInfo(t,
+					"repo:owner/repo:ref:refs/heads/main",
+					"",
+					"github-actor",
+					domain.ProviderTypeGitHub,
+					ownerRepo,
+					"refs/heads/main",
 				)
-				return mockFields{redisClient: redisClient, keyGenerator: keyGenerator}
+				sessionClient.EXPECT().GetSession(gomock.Any(), "github-session-id").Return(expectedUserInfo, nil)
+				return mockFields{sessionClient: sessionClient}
 			},
 			args: args{
 				sessionID: "github-session-id",
@@ -107,44 +83,15 @@ func TestAuthUseCase_AuthenticateSession(t *testing.T) {
 		{
 			name: "異常系: セッションが存在しない場合、ErrSessionNotFound",
 			setupMocks: func(ctrl *gomock.Controller) mockFields {
-				redisClient := mock_usecase.NewMockCacheClient(ctrl)
-				keyGenerator := mock_usecase.NewMockCacheKeyGenerator(ctrl)
-				keyGenerator.EXPECT().SessionKey(gomock.Any()).Return("lfs:session:invalid-session-id")
-				redisClient.EXPECT().GetJSON(gomock.Any(), gomock.Any(), gomock.Any()).Return(usecase.ErrCacheMiss)
-				return mockFields{redisClient: redisClient, keyGenerator: keyGenerator}
+				sessionClient := mock_usecase.NewMockSessionClient(ctrl)
+				sessionClient.EXPECT().GetSession(gomock.Any(), "invalid-session-id").Return(nil, errors.New("session not found"))
+				return mockFields{sessionClient: sessionClient}
 			},
 			args: args{
 				sessionID: "invalid-session-id",
 			},
 			want:    nil,
 			wantErr: usecase.ErrSessionNotFound,
-		},
-		{
-			name: "異常系: セッションデータにsubが含まれていない場合、ErrInvalidSessionData",
-			setupMocks: func(ctrl *gomock.Controller) mockFields {
-				redisClient := mock_usecase.NewMockCacheClient(ctrl)
-				keyGenerator := mock_usecase.NewMockCacheKeyGenerator(ctrl)
-				keyGenerator.EXPECT().SessionKey(gomock.Any()).Return("lfs:session:malformed-session-id")
-				redisClient.EXPECT().GetJSON(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-					func(ctx context.Context, key string, dest interface{}) error {
-						sessionData := &usecase.SessionData{
-							Sub:   "",
-							Email: "test@example.com",
-							Name:  "Test User",
-						}
-						if m, ok := dest.(*usecase.SessionData); ok {
-							*m = *sessionData
-						}
-						return nil
-					},
-				)
-				return mockFields{redisClient: redisClient, keyGenerator: keyGenerator}
-			},
-			args: args{
-				sessionID: "malformed-session-id",
-			},
-			want:    nil,
-			wantErr: usecase.ErrInvalidSessionData,
 		},
 	}
 	for _, tt := range tests {
@@ -154,7 +101,7 @@ func TestAuthUseCase_AuthenticateSession(t *testing.T) {
 			defer ctrl.Finish()
 
 			mocks := tt.setupMocks(ctrl)
-			uc := usecase.NewAuthUseCase(nil, nil, mocks.redisClient, mocks.keyGenerator)
+			uc := usecase.NewAuthUseCase(nil, nil, mocks.sessionClient)
 
 			got, err := uc.AuthenticateSession(ctx, tt.args.sessionID)
 
@@ -254,7 +201,7 @@ func TestAuthUseCase_AuthenticateGitHubOIDC(t *testing.T) {
 
 			githubProvider := tt.fields.setupGitHubProvider(ctrl)
 			repoAllowlist := tt.fields.setupRepoAllowlist(ctrl)
-			uc := usecase.NewAuthUseCase(githubProvider, repoAllowlist, nil, nil)
+			uc := usecase.NewAuthUseCase(githubProvider, repoAllowlist, nil)
 
 			got, err := uc.AuthenticateGitHubOIDC(ctx, tt.args.token)
 
@@ -295,9 +242,8 @@ func TestAuthUseCase_AuthenticateGitHubOIDC_NotConfigured(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			redisClient := mock_usecase.NewMockCacheClient(ctrl)
-			keyGenerator := mock_usecase.NewMockCacheKeyGenerator(ctrl)
-			uc := usecase.NewAuthUseCase(nil, nil, redisClient, keyGenerator)
+			sessionClient := mock_usecase.NewMockSessionClient(ctrl)
+			uc := usecase.NewAuthUseCase(nil, nil, sessionClient)
 
 			got, err := uc.AuthenticateGitHubOIDC(ctx, tt.args)
 

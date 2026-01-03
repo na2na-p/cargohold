@@ -2,29 +2,14 @@ package auth_test
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"testing"
-	"time"
 
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/usecase"
 )
 
 type mockGitHubOIDCProvider struct{}
-
-type mockCacheKeyGenerator struct{}
-
-func (m *mockCacheKeyGenerator) MetadataKey(oid string) string {
-	return "lfs:meta:" + oid
-}
-
-func (m *mockCacheKeyGenerator) SessionKey(sessionID string) string {
-	return "lfs:session:" + sessionID
-}
-
-func (m *mockCacheKeyGenerator) BatchUploadKey(oid string) string {
-	return "lfs:batch:upload:" + oid
-}
 
 func (m *mockGitHubOIDCProvider) VerifyIDToken(ctx context.Context, token string) (*domain.GitHubUserInfo, error) {
 	return domain.NewGitHubUserInfo(
@@ -35,84 +20,21 @@ func (m *mockGitHubOIDCProvider) VerifyIDToken(ctx context.Context, token string
 	), nil
 }
 
-type mockCacheClient struct {
-	cache map[string]interface{}
+type mockSessionClient struct {
+	sessions map[string]*domain.UserInfo
 }
 
-func newMockCacheClient() *mockCacheClient {
-	return &mockCacheClient{
-		cache: make(map[string]interface{}),
+func newMockSessionClient() *mockSessionClient {
+	return &mockSessionClient{
+		sessions: make(map[string]*domain.UserInfo),
 	}
 }
 
-func (m *mockCacheClient) Get(ctx context.Context, key string) (string, error) {
-	if val, ok := m.cache[key].(string); ok {
-		return val, nil
+func (m *mockSessionClient) GetSession(ctx context.Context, sessionID string) (*domain.UserInfo, error) {
+	if userInfo, ok := m.sessions[sessionID]; ok {
+		return userInfo, nil
 	}
-	return "", usecase.ErrCacheMiss
-}
-
-func (m *mockCacheClient) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
-	m.cache[key] = value
-	return nil
-}
-
-func (m *mockCacheClient) Exists(ctx context.Context, key string) (bool, error) {
-	_, exists := m.cache[key]
-	return exists, nil
-}
-
-func (m *mockCacheClient) GetJSON(ctx context.Context, key string, dest interface{}) error {
-	val, exists := m.cache[key]
-	if !exists {
-		return usecase.ErrCacheMiss
-	}
-
-	if sessionDataDest, ok := dest.(*usecase.SessionData); ok {
-		if sessionData, ok := val.(*usecase.SessionData); ok {
-			*sessionDataDest = *sessionData
-			return nil
-		}
-		if mapData, ok := val.(map[string]interface{}); ok {
-			if sub, ok := mapData["sub"].(string); ok {
-				sessionDataDest.Sub = sub
-			}
-			if email, ok := mapData["email"].(string); ok {
-				sessionDataDest.Email = email
-			}
-			if name, ok := mapData["name"].(string); ok {
-				sessionDataDest.Name = name
-			}
-			if provider, ok := mapData["provider"].(string); ok {
-				sessionDataDest.Provider = provider
-			}
-			if repository, ok := mapData["repository"].(string); ok {
-				sessionDataDest.Repository = repository
-			}
-			if ref, ok := mapData["ref"].(string); ok {
-				sessionDataDest.Ref = ref
-			}
-			return nil
-		}
-	}
-
-	if mapVal, ok := val.(map[string]interface{}); ok {
-		if sessionData, ok := dest.(*map[string]interface{}); ok {
-			*sessionData = mapVal
-			return nil
-		}
-	}
-	return fmt.Errorf("GetJSON: type mismatch - cannot convert stored value to destination type")
-}
-
-func (m *mockCacheClient) SetJSON(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
-	m.cache[key] = value
-	return nil
-}
-
-func (m *mockCacheClient) Delete(ctx context.Context, key string) error {
-	delete(m.cache, key)
-	return nil
+	return nil, errors.New("session not found")
 }
 
 type mockRepositoryAllowlistRepository struct{}
@@ -133,27 +55,31 @@ func (m *mockRepositoryAllowlistRepository) List(ctx context.Context) ([]*domain
 	return nil, nil
 }
 
+func mustNewUserInfo(t *testing.T, sub, email, name string, provider domain.ProviderType, repository *domain.RepositoryIdentifier, ref string) *domain.UserInfo {
+	t.Helper()
+	userInfo, err := domain.NewUserInfo(sub, email, name, provider, repository, ref)
+	if err != nil {
+		t.Fatalf("failed to create UserInfo: %v", err)
+	}
+	return userInfo
+}
+
 func TestAuthUseCase_AuthenticateSession(t *testing.T) {
 	tests := []struct {
 		name        string
 		sessionID   string
-		setupMock   func() *mockCacheClient
+		setupMock   func() *mockSessionClient
 		expectError bool
 		expectedSub string
 	}{
 		{
 			name:      "正常系: セッションから認証できる",
 			sessionID: "test-session-id",
-			setupMock: func() *mockCacheClient {
-				mockCache := newMockCacheClient()
-				sessionData := map[string]interface{}{
-					"sub":      "user-123",
-					"email":    "test@example.com",
-					"name":     "Test User",
-					"provider": "github",
-				}
-				mockCache.cache["lfs:session:test-session-id"] = sessionData
-				return mockCache
+			setupMock: func() *mockSessionClient {
+				mockSession := newMockSessionClient()
+				userInfo := mustNewUserInfo(t, "user-123", "test@example.com", "Test User", domain.ProviderTypeGitHub, nil, "")
+				mockSession.sessions["test-session-id"] = userInfo
+				return mockSession
 			},
 			expectError: false,
 			expectedSub: "user-123",
@@ -162,12 +88,11 @@ func TestAuthUseCase_AuthenticateSession(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockCache := tt.setupMock()
+			mockSession := tt.setupMock()
 			mockGitHub := &mockGitHubOIDCProvider{}
-			mockKeyGenerator := &mockCacheKeyGenerator{}
 			mockRepoAllowlist := &mockRepositoryAllowlistRepository{}
 
-			authUC := usecase.NewAuthUseCase(mockGitHub, mockRepoAllowlist, mockCache, mockKeyGenerator)
+			authUC := usecase.NewAuthUseCase(mockGitHub, mockRepoAllowlist, mockSession)
 
 			ctx := context.Background()
 			userInfo, err := authUC.AuthenticateSession(ctx, tt.sessionID)
@@ -208,11 +133,10 @@ func TestAuthUseCase_AuthenticateGitHubOIDC(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockGitHub := &mockGitHubOIDCProvider{}
-			mockCache := newMockCacheClient()
-			mockKeyGenerator := &mockCacheKeyGenerator{}
+			mockSession := newMockSessionClient()
 			mockRepoAllowlist := &mockRepositoryAllowlistRepository{}
 
-			authUC := usecase.NewAuthUseCase(mockGitHub, mockRepoAllowlist, mockCache, mockKeyGenerator)
+			authUC := usecase.NewAuthUseCase(mockGitHub, mockRepoAllowlist, mockSession)
 
 			ctx := context.Background()
 			userInfo, err := authUC.AuthenticateGitHubOIDC(ctx, tt.token)
@@ -237,7 +161,6 @@ func TestAuthUseCase_AuthenticateGitHubOIDC(t *testing.T) {
 
 var (
 	_ usecase.GitHubOIDCProvider           = (*mockGitHubOIDCProvider)(nil)
-	_ usecase.CacheClient                  = (*mockCacheClient)(nil)
-	_ usecase.CacheKeyGenerator            = (*mockCacheKeyGenerator)(nil)
+	_ usecase.SessionClient                = (*mockSessionClient)(nil)
 	_ domain.RepositoryAllowlistRepository = (*mockRepositoryAllowlistRepository)(nil)
 )

@@ -158,7 +158,7 @@ func run() error {
 	)
 
 	cachingRepoAllowlist := infrastructure.NewCachingRepositoryAllowlist(repoAllowlistRepo, redisClient)
-	authUC := usecase.NewAuthUseCase(githubProvider, cachingRepoAllowlist, redisClient, cacheKeyGenerator)
+	authUC := usecase.NewAuthUseCase(githubProvider, cachingRepoAllowlist, redisClient)
 	accessAuthService := domain.NewAccessAuthorizationService(policyRepo)
 	batchUC := usecase.NewBatchUseCase(cachingRepo, proxyActionURLGenerator, policyRepo, storageKeyGenerator, accessAuthService)
 	verifyUC := usecase.NewVerifyUseCase(cachingRepo, cachingRepo)
