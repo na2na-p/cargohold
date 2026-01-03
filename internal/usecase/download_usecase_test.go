@@ -19,12 +19,13 @@ func TestDownloadUseCase_HandleDownloadObject(t *testing.T) {
 		actionURLGenerator func(ctrl *gomock.Controller) usecase.ActionURLGenerator
 	}
 	type args struct {
-		ctx     context.Context
-		baseURL string
-		owner   string
-		repo    string
-		oid     domain.OID
-		size    domain.Size
+		ctx        context.Context
+		baseURL    string
+		owner      string
+		repo       string
+		oid        domain.OID
+		size       domain.Size
+		authHeader string
 	}
 	tests := []struct {
 		name   string
@@ -173,7 +174,7 @@ func TestDownloadUseCase_HandleDownloadObject(t *testing.T) {
 				tt.fields.actionURLGenerator(ctrl),
 			)
 
-			got := uc.HandleDownloadObject(tt.args.ctx, tt.args.baseURL, tt.args.owner, tt.args.repo, tt.args.oid, tt.args.size)
+			got := uc.HandleDownloadObject(tt.args.ctx, tt.args.baseURL, tt.args.owner, tt.args.repo, tt.args.oid, tt.args.size, tt.args.authHeader)
 
 			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(
 				usecase.ResponseObject{},

@@ -61,8 +61,9 @@ func (h *BatchHandler) Handle(c echo.Context) error {
 	baseURL := getBaseURL(c)
 	owner := repoID.Owner()
 	repo := repoID.Name()
+	authHeader := c.Request().Header.Get("Authorization")
 
-	resp, err := h.batchUseCase.HandleBatchRequest(ctx, baseURL, owner, repo, req)
+	resp, err := h.batchUseCase.HandleBatchRequest(ctx, baseURL, owner, repo, req, authHeader)
 	if err != nil {
 		return h.handleUseCaseError(c, err)
 	}
