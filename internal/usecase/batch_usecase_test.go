@@ -25,11 +25,12 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 		accessAuthService   func(ctrl *gomock.Controller) domain.AccessAuthorizationService
 	}
 	type args struct {
-		ctx     context.Context
-		baseURL string
-		owner   string
-		repo    string
-		req     usecase.BatchRequest
+		ctx        context.Context
+		baseURL    string
+		owner      string
+		repo       string
+		req        usecase.BatchRequest
+		authHeader string
 	}
 	tests := []struct {
 		name    string
@@ -510,7 +511,7 @@ func TestBatchUseCase_HandleBatchRequest(t *testing.T) {
 				tt.fields.accessAuthService(ctrl),
 			)
 
-			got, err := uc.HandleBatchRequest(tt.args.ctx, tt.args.baseURL, tt.args.owner, tt.args.repo, tt.args.req)
+			got, err := uc.HandleBatchRequest(tt.args.ctx, tt.args.baseURL, tt.args.owner, tt.args.repo, tt.args.req, tt.args.authHeader)
 
 			if tt.wantErr != nil {
 				if err == nil {

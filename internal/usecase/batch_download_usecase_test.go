@@ -24,11 +24,12 @@ func TestBatchDownloadUseCase_HandleBatchDownload(t *testing.T) {
 		policyRepo      func(ctrl *gomock.Controller) domain.AccessPolicyRepository
 	}
 	type args struct {
-		ctx     context.Context
-		baseURL string
-		owner   string
-		repo    string
-		req     usecase.BatchRequest
+		ctx        context.Context
+		baseURL    string
+		owner      string
+		repo       string
+		req        usecase.BatchRequest
+		authHeader string
 	}
 	tests := []struct {
 		name    string
@@ -44,7 +45,7 @@ func TestBatchDownloadUseCase_HandleBatchDownload(t *testing.T) {
 					mock := mock_usecase.NewMockDownloadUseCase(ctrl)
 					downloadAction := usecase.NewAction("https://s3.example.com/presigned-get-url", nil, 900)
 					actions := usecase.NewActions(nil, &downloadAction)
-					mock.EXPECT().HandleDownloadObject(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					mock.EXPECT().HandleDownloadObject(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewResponseObject(testOID, 1024, true, &actions, nil),
 					)
 					return mock
@@ -292,7 +293,7 @@ func TestBatchDownloadUseCase_HandleBatchDownload(t *testing.T) {
 				authService,
 			)
 
-			got, err := uc.HandleBatchDownload(tt.args.ctx, tt.args.baseURL, tt.args.owner, tt.args.repo, tt.args.req)
+			got, err := uc.HandleBatchDownload(tt.args.ctx, tt.args.baseURL, tt.args.owner, tt.args.repo, tt.args.req, tt.args.authHeader)
 
 			if tt.wantErr != nil {
 				if err == nil {

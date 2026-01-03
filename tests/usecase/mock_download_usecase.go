@@ -43,15 +43,15 @@ func (m *MockDownloadUseCase) EXPECT() *MockDownloadUseCaseMockRecorder {
 }
 
 // HandleDownloadObject mocks base method.
-func (m *MockDownloadUseCase) HandleDownloadObject(ctx context.Context, baseURL, owner, repo string, oid domain.OID, size domain.Size) usecase.ResponseObject {
+func (m *MockDownloadUseCase) HandleDownloadObject(ctx context.Context, baseURL, owner, repo string, oid domain.OID, size domain.Size, authHeader string) usecase.ResponseObject {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleDownloadObject", ctx, baseURL, owner, repo, oid, size)
+	ret := m.ctrl.Call(m, "HandleDownloadObject", ctx, baseURL, owner, repo, oid, size, authHeader)
 	ret0, _ := ret[0].(usecase.ResponseObject)
 	return ret0
 }
 
 // HandleDownloadObject indicates an expected call of HandleDownloadObject.
-func (mr *MockDownloadUseCaseMockRecorder) HandleDownloadObject(ctx, baseURL, owner, repo, oid, size any) *gomock.Call {
+func (mr *MockDownloadUseCaseMockRecorder) HandleDownloadObject(ctx, baseURL, owner, repo, oid, size, authHeader any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleDownloadObject", reflect.TypeOf((*MockDownloadUseCase)(nil).HandleDownloadObject), ctx, baseURL, owner, repo, oid, size)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleDownloadObject", reflect.TypeOf((*MockDownloadUseCase)(nil).HandleDownloadObject), ctx, baseURL, owner, repo, oid, size, authHeader)
 }

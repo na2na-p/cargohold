@@ -9,7 +9,7 @@ import (
 )
 
 type UploadUseCase interface {
-	HandleUploadObject(ctx context.Context, baseURL, owner, repo string, oid domain.OID, size domain.Size, hashAlgo string) ResponseObject
+	HandleUploadObject(ctx context.Context, baseURL, owner, repo string, oid domain.OID, size domain.Size, hashAlgo string, authHeader string) ResponseObject
 }
 
 type uploadUseCaseImpl struct {
@@ -30,7 +30,7 @@ func NewUploadUseCase(
 	}
 }
 
-func (uc *uploadUseCaseImpl) HandleUploadObject(ctx context.Context, baseURL, owner, repo string, oid domain.OID, size domain.Size, hashAlgo string) ResponseObject {
+func (uc *uploadUseCaseImpl) HandleUploadObject(ctx context.Context, baseURL, owner, repo string, oid domain.OID, size domain.Size, hashAlgo string, authHeader string) ResponseObject {
 	obj, err := uc.repo.FindByOID(ctx, oid)
 
 	var storageKey string
@@ -68,7 +68,11 @@ func (uc *uploadUseCaseImpl) HandleUploadObject(ctx context.Context, baseURL, ow
 
 	uploadURL := uc.actionURLGenerator.GenerateUploadURL(baseURL, owner, repo, oid.String())
 
-	uploadAction := NewAction(uploadURL, nil, int(PresignedURLTTL.Seconds()))
+	header := map[string]string{}
+	if authHeader != "" {
+		header["Authorization"] = authHeader
+	}
+	uploadAction := NewAction(uploadURL, header, int(PresignedURLTTL.Seconds()))
 	actions := NewActions(&uploadAction, nil)
 	return NewResponseObject(oid.String(), size.Int64(), true, &actions, nil)
 }

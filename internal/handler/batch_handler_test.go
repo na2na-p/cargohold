@@ -45,8 +45,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 			fields: fields{
 				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
 					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
-					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest) (usecase.BatchResponse, error) {
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest, _ string) (usecase.BatchResponse, error) {
 							uploadAction := usecase.NewAction("https://s3.example.com/upload", nil, 900)
 							actions := usecase.NewActions(&uploadAction, nil)
 							return usecase.NewBatchResponse(
@@ -112,8 +112,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 			fields: fields{
 				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
 					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
-					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest) (usecase.BatchResponse, error) {
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest, _ string) (usecase.BatchResponse, error) {
 							downloadAction := usecase.NewAction("https://s3.example.com/download", nil, 900)
 							actions := usecase.NewActions(nil, &downloadAction)
 							return usecase.NewBatchResponse(
@@ -264,7 +264,7 @@ func TestBatchHandler_Handle(t *testing.T) {
 			fields: fields{
 				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
 					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
-					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("", []usecase.ResponseObject{}, ""), usecase.ErrInvalidOperation,
 					)
 					return m
@@ -306,7 +306,7 @@ func TestBatchHandler_Handle(t *testing.T) {
 			fields: fields{
 				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
 					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
-					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("", []usecase.ResponseObject{}, ""), usecase.ErrNoObjects,
 					)
 					return m
@@ -343,7 +343,7 @@ func TestBatchHandler_Handle(t *testing.T) {
 			fields: fields{
 				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
 					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
-					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("", []usecase.ResponseObject{}, ""), usecase.ErrInvalidOID,
 					)
 					return m
@@ -385,7 +385,7 @@ func TestBatchHandler_Handle(t *testing.T) {
 			fields: fields{
 				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
 					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
-					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("", []usecase.ResponseObject{}, ""), usecase.ErrInvalidSize,
 					)
 					return m
@@ -427,7 +427,7 @@ func TestBatchHandler_Handle(t *testing.T) {
 			fields: fields{
 				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
 					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
-					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("", []usecase.ResponseObject{}, ""), usecase.ErrInvalidHashAlgorithm,
 					)
 					return m
@@ -470,7 +470,7 @@ func TestBatchHandler_Handle(t *testing.T) {
 			fields: fields{
 				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
 					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
-					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("", []usecase.ResponseObject{}, ""), errors.New("unknown error"),
 					)
 					return m
@@ -512,8 +512,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 			fields: fields{
 				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
 					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
-					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest) (usecase.BatchResponse, error) {
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest, _ string) (usecase.BatchResponse, error) {
 							objErr := usecase.NewObjectError(404, "オブジェクトが存在しません")
 							return usecase.NewBatchResponse(
 								"basic",
@@ -652,8 +652,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 			fields: fields{
 				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
 					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
-					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest) (usecase.BatchResponse, error) {
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest, _ string) (usecase.BatchResponse, error) {
 							uploadAction := usecase.NewAction("https://s3.example.com/upload", nil, 900)
 							actions := usecase.NewActions(&uploadAction, nil)
 							return usecase.NewBatchResponse(
@@ -719,8 +719,8 @@ func TestBatchHandler_Handle(t *testing.T) {
 			fields: fields{
 				setupMock: func(ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
 					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
-					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest) (usecase.BatchResponse, error) {
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+						func(_ interface{}, _, _, _ string, _ usecase.BatchRequest, _ string) (usecase.BatchResponse, error) {
 							downloadAction := usecase.NewAction("https://s3.example.com/download", nil, 900)
 							actions := usecase.NewActions(nil, &downloadAction)
 							return usecase.NewBatchResponse(
@@ -879,8 +879,8 @@ func TestBatchHandler_Integration(t *testing.T) {
 			name: "統合: 正常なuploadリクエストが成功する",
 			setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
 				m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
-				m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-					func(_ interface{}, _, _, _ string, req usecase.BatchRequest) (usecase.BatchResponse, error) {
+				m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+					func(_ interface{}, _, _, _ string, req usecase.BatchRequest, _ string) (usecase.BatchResponse, error) {
 						if req.Operation().String() != "upload" {
 							t.Errorf("Expected operation 'upload', got '%s'", req.Operation().String())
 						}
@@ -1038,7 +1038,7 @@ func TestBatchHandler_Handle_PayloadTooLarge(t *testing.T) {
 			fields: fields{
 				setupMock: func(t *testing.T, ctrl *gomock.Controller) *mock_usecase.MockBatchUseCaseInterface {
 					m := mock_usecase.NewMockBatchUseCaseInterface(ctrl)
-					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					m.EXPECT().HandleBatchRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(
 						usecase.NewBatchResponse("basic", []usecase.ResponseObject{}, "sha256"), nil,
 					)
 					return m

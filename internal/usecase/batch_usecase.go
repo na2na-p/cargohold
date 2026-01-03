@@ -15,7 +15,7 @@ const (
 )
 
 type BatchUseCaseInterface interface {
-	HandleBatchRequest(ctx context.Context, baseURL, owner, repo string, req BatchRequest) (BatchResponse, error)
+	HandleBatchRequest(ctx context.Context, baseURL, owner, repo string, req BatchRequest, authHeader string) (BatchResponse, error)
 }
 
 type BatchUseCase struct {
@@ -52,9 +52,9 @@ func NewBatchUseCaseWithDependencies(
 	}
 }
 
-func (uc *BatchUseCase) HandleBatchRequest(ctx context.Context, baseURL, owner, repo string, req BatchRequest) (BatchResponse, error) {
+func (uc *BatchUseCase) HandleBatchRequest(ctx context.Context, baseURL, owner, repo string, req BatchRequest, authHeader string) (BatchResponse, error) {
 	if req.Operation() == domain.OperationDownload {
-		return uc.batchDownloadUseCase.HandleBatchDownload(ctx, baseURL, owner, repo, req)
+		return uc.batchDownloadUseCase.HandleBatchDownload(ctx, baseURL, owner, repo, req, authHeader)
 	}
-	return uc.batchUploadUseCase.HandleBatchUpload(ctx, baseURL, owner, repo, req)
+	return uc.batchUploadUseCase.HandleBatchUpload(ctx, baseURL, owner, repo, req, authHeader)
 }

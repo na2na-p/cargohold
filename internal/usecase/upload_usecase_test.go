@@ -20,13 +20,14 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 		storageKeyGenerator func(ctrl *gomock.Controller) usecase.StorageKeyGenerator
 	}
 	type args struct {
-		ctx      context.Context
-		baseURL  string
-		owner    string
-		repo     string
-		oid      domain.OID
-		size     domain.Size
-		hashAlgo string
+		ctx        context.Context
+		baseURL    string
+		owner      string
+		repo       string
+		oid        domain.OID
+		size       domain.Size
+		hashAlgo   string
+		authHeader string
 	}
 	tests := []struct {
 		name   string
@@ -305,7 +306,7 @@ func TestUploadUseCase_HandleUploadObject(t *testing.T) {
 				tt.fields.storageKeyGenerator(ctrl),
 			)
 
-			got := uc.HandleUploadObject(tt.args.ctx, tt.args.baseURL, tt.args.owner, tt.args.repo, tt.args.oid, tt.args.size, tt.args.hashAlgo)
+			got := uc.HandleUploadObject(tt.args.ctx, tt.args.baseURL, tt.args.owner, tt.args.repo, tt.args.oid, tt.args.size, tt.args.hashAlgo, tt.args.authHeader)
 
 			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(
 				usecase.ResponseObject{},
