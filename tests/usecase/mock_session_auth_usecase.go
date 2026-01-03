@@ -8,3 +8,50 @@
 
 // Package usecase is a generated GoMock package.
 package usecase
+
+import (
+	context "context"
+	reflect "reflect"
+
+	domain "github.com/na2na-p/cargohold/internal/domain"
+	gomock "go.uber.org/mock/gomock"
+)
+
+// MockSessionClient is a mock of SessionClient interface.
+type MockSessionClient struct {
+	ctrl     *gomock.Controller
+	recorder *MockSessionClientMockRecorder
+	isgomock struct{}
+}
+
+// MockSessionClientMockRecorder is the mock recorder for MockSessionClient.
+type MockSessionClientMockRecorder struct {
+	mock *MockSessionClient
+}
+
+// NewMockSessionClient creates a new mock instance.
+func NewMockSessionClient(ctrl *gomock.Controller) *MockSessionClient {
+	mock := &MockSessionClient{ctrl: ctrl}
+	mock.recorder = &MockSessionClientMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockSessionClient) EXPECT() *MockSessionClientMockRecorder {
+	return m.recorder
+}
+
+// GetSession mocks base method.
+func (m *MockSessionClient) GetSession(ctx context.Context, sessionID string) (*domain.UserInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSession", ctx, sessionID)
+	ret0, _ := ret[0].(*domain.UserInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSession indicates an expected call of GetSession.
+func (mr *MockSessionClientMockRecorder) GetSession(ctx, sessionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSession", reflect.TypeOf((*MockSessionClient)(nil).GetSession), ctx, sessionID)
+}

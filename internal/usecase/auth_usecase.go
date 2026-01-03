@@ -15,8 +15,7 @@ type AuthUseCase struct {
 func NewAuthUseCase(
 	githubProvider GitHubOIDCProvider,
 	repoAllowlistRepo domain.RepositoryAllowlistRepository,
-	redisClient CacheClient,
-	keyGenerator CacheKeyGenerator,
+	sessionClient SessionClient,
 ) *AuthUseCase {
 	var githubOIDCUseCase *GitHubOIDCUseCase
 	if githubProvider != nil && repoAllowlistRepo != nil {
@@ -24,7 +23,7 @@ func NewAuthUseCase(
 	}
 	return &AuthUseCase{
 		githubOIDCUseCase:  githubOIDCUseCase,
-		sessionAuthUseCase: NewSessionAuthUseCase(redisClient, keyGenerator),
+		sessionAuthUseCase: NewSessionAuthUseCase(sessionClient),
 	}
 }
 
