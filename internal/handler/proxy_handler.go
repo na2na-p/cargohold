@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/usecase"
 )
@@ -28,7 +28,7 @@ func NewProxyHandler(uploadUC usecase.ProxyUploadUseCase, downloadUC usecase.Pro
 	}
 }
 
-func (h *ProxyHandler) HandleUpload(c echo.Context) error {
+func (h *ProxyHandler) HandleUpload(c *echo.Context) error {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 	oidStr := c.Param("oid")
@@ -47,7 +47,7 @@ func (h *ProxyHandler) HandleUpload(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func (h *ProxyHandler) HandleDownload(c echo.Context) error {
+func (h *ProxyHandler) HandleDownload(c *echo.Context) error {
 	owner := c.Param("owner")
 	repo := c.Param("repo")
 	oidStr := c.Param("oid")
@@ -71,7 +71,7 @@ func (h *ProxyHandler) HandleDownload(c echo.Context) error {
 	return c.Stream(http.StatusOK, "application/octet-stream", stream)
 }
 
-func (h *ProxyHandler) handleProxyError(c echo.Context, err error) error {
+func (h *ProxyHandler) handleProxyError(c *echo.Context, err error) error {
 	if errors.Is(err, usecase.ErrAccessDenied) {
 		return SendLFSError(c, http.StatusForbidden, "アクセスが拒否されました")
 	}

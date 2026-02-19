@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 
 	"github.com/na2na-p/cargohold/internal/config"
 	"github.com/na2na-p/cargohold/internal/domain"
@@ -178,8 +178,6 @@ func run() error {
 	)
 
 	e := echo.New()
-	e.HideBanner = true
-	e.HidePort = true
 	e.HTTPErrorHandler = authMiddleware.CustomHTTPErrorHandler
 
 	ipExtractor, err := buildIPExtractor(cfg.Server.TrustedProxyCIDRs)
@@ -195,9 +193,8 @@ func run() error {
 		LogURI:      true,
 		LogMethod:   true,
 		LogLatency:  true,
-		LogError:    true,
 		HandleError: true,
-		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+		LogValuesFunc: func(c *echo.Context, v middleware.RequestLoggerValues) error {
 			attrs := []slog.Attr{
 				slog.String("method", v.Method),
 				slog.String("uri", authMiddleware.MaskSensitiveParams(v.URI)),
@@ -249,6 +246,7 @@ func run() error {
 
 	server := &http.Server{
 		Addr:         ":" + port,
+		Handler:      e,
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
 		IdleTimeout:  idleTimeout,
@@ -257,7 +255,7 @@ func run() error {
 	errChan := make(chan error, 1)
 	go func() {
 		slog.Info("starting server", "port", port)
-		if err := e.StartServer(server); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errChan <- err
 		}
 		close(errChan)
@@ -279,7 +277,7 @@ func run() error {
 	defer cancel()
 
 	slog.Info("shutting down server")
-	if err := e.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(ctx); err != nil {
 		return err
 	}
 

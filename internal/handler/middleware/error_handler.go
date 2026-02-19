@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/handler/response"
 )
 
@@ -29,8 +29,8 @@ func NewAppError(statusCode int, message string, err error) *AppError {
 	}
 }
 
-func CustomHTTPErrorHandler(err error, c echo.Context) {
-	if c.Response().Committed {
+func CustomHTTPErrorHandler(c *echo.Context, err error) {
+	if resp, unwrapErr := echo.UnwrapResponse(c.Response()); unwrapErr == nil && resp.Committed {
 		return
 	}
 
@@ -49,11 +49,7 @@ func CustomHTTPErrorHandler(err error, c echo.Context) {
 		var httpErr *echo.HTTPError
 		if errors.As(err, &httpErr) {
 			statusCode = httpErr.Code
-			if msg, ok := httpErr.Message.(string); ok {
-				message = msg
-			} else {
-				message = "サーバー内部エラーが発生しました"
-			}
+			message = httpErr.Message
 		} else {
 			statusCode = http.StatusInternalServerError
 			message = "サーバー内部エラーが発生しました"

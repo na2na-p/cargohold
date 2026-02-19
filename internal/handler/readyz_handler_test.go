@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/handler"
 	"github.com/na2na-p/cargohold/internal/usecase"
 	mock_handler "github.com/na2na-p/cargohold/tests/handler"

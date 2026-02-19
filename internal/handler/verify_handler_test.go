@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/handler"
 	"github.com/na2na-p/cargohold/internal/usecase"
 	mock_usecase "github.com/na2na-p/cargohold/tests/usecase"
@@ -286,8 +286,10 @@ func TestVerifyHandler(t *testing.T) {
 			req.Header.Set("Accept", tt.args.accept)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetParamNames("owner", "repo")
-			c.SetParamValues(tt.args.owner, tt.args.repo)
+			c.SetPathValues(echo.PathValues{
+				{Name: "owner", Value: tt.args.owner},
+				{Name: "repo", Value: tt.args.repo},
+			})
 
 			h := handler.VerifyHandler(tt.fields.usecase(ctrl))
 

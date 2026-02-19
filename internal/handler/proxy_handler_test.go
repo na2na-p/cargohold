@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
@@ -270,8 +270,11 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 			}
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetParamNames("owner", "repo", "oid")
-			c.SetParamValues(tt.args.owner, tt.args.repo, tt.args.oid)
+			c.SetPathValues(echo.PathValues{
+				{Name: "owner", Value: tt.args.owner},
+				{Name: "repo", Value: tt.args.repo},
+				{Name: "oid", Value: tt.args.oid},
+			})
 
 			mockUploadUC := tt.fields.setupUploadMock(ctrl)
 			mockDownloadUC := tt.fields.setupDownloadMock(ctrl)
@@ -279,7 +282,7 @@ func TestProxyHandler_HandleUpload(t *testing.T) {
 			h := handler.NewProxyHandler(mockUploadUC, mockDownloadUC, mockStorageErrorChecker, tt.fields.proxyTimeout)
 			err := h.HandleUpload(c)
 			if err != nil {
-				e.HTTPErrorHandler(err, c)
+				e.HTTPErrorHandler(c, err)
 			}
 
 			if rec.Code != tt.wantStatusCode {
@@ -559,8 +562,11 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 			}
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetParamNames("owner", "repo", "oid")
-			c.SetParamValues(tt.args.owner, tt.args.repo, tt.args.oid)
+			c.SetPathValues(echo.PathValues{
+				{Name: "owner", Value: tt.args.owner},
+				{Name: "repo", Value: tt.args.repo},
+				{Name: "oid", Value: tt.args.oid},
+			})
 
 			mockUploadUC := tt.fields.setupUploadMock(ctrl)
 			mockDownloadUC := tt.fields.setupDownloadMock(ctrl)
@@ -568,7 +574,7 @@ func TestProxyHandler_HandleDownload(t *testing.T) {
 			h := handler.NewProxyHandler(mockUploadUC, mockDownloadUC, mockStorageErrorChecker, tt.fields.proxyTimeout)
 			err := h.HandleDownload(c)
 			if err != nil {
-				e.HTTPErrorHandler(err, c)
+				e.HTTPErrorHandler(c, err)
 			}
 
 			if rec.Code != tt.wantStatusCode {

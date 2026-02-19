@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
@@ -833,8 +833,10 @@ func TestBatchHandler_Handle(t *testing.T) {
 			}
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetParamNames("owner", "repo")
-			c.SetParamValues(tt.args.owner, tt.args.repo)
+			c.SetPathValues(echo.PathValues{
+				{Name: "owner", Value: tt.args.owner},
+				{Name: "repo", Value: tt.args.repo},
+			})
 
 			if tt.args.userInfo != nil {
 				c.Set(middleware.UserInfoContextKey, tt.args.userInfo)
@@ -844,7 +846,7 @@ func TestBatchHandler_Handle(t *testing.T) {
 			h := handler.NewBatchHandler(mockUseCase)
 			err := h.Handle(c)
 			if err != nil {
-				e.HTTPErrorHandler(err, c)
+				e.HTTPErrorHandler(c, err)
 			}
 
 			if rec.Code != tt.wantStatusCode {
@@ -974,8 +976,10 @@ func TestBatchHandler_Integration(t *testing.T) {
 			}
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetParamNames("owner", "repo")
-			c.SetParamValues("testowner", "testrepo")
+			c.SetPathValues(echo.PathValues{
+				{Name: "owner", Value: "testowner"},
+				{Name: "repo", Value: "testrepo"},
+			})
 
 			if tt.userInfo != nil {
 				c.Set(middleware.UserInfoContextKey, tt.userInfo)
@@ -1074,8 +1078,10 @@ func TestBatchHandler_Handle_PayloadTooLarge(t *testing.T) {
 			}
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetParamNames("owner", "repo")
-			c.SetParamValues("testowner", "testrepo")
+			c.SetPathValues(echo.PathValues{
+				{Name: "owner", Value: "testowner"},
+				{Name: "repo", Value: "testrepo"},
+			})
 
 			if tt.args.userInfo != nil {
 				c.Set(middleware.UserInfoContextKey, tt.args.userInfo)
@@ -1085,7 +1091,7 @@ func TestBatchHandler_Handle_PayloadTooLarge(t *testing.T) {
 			h := handler.NewBatchHandler(mockUseCase)
 			err := h.Handle(c)
 			if err != nil {
-				e.HTTPErrorHandler(err, c)
+				e.HTTPErrorHandler(c, err)
 			}
 
 			if rec.Code != tt.wantStatusCode {
