@@ -26,7 +26,7 @@ type DatabaseConfig struct {
 	Host     string `envconfig:"DATABASE_HOST" required:"true"`
 	Port     int    `envconfig:"DATABASE_PORT" default:"5432"`
 	User     string `envconfig:"DATABASE_USER" required:"true"`
-	Password string `envconfig:"DATABASE_PASSWORD" required:"true"`
+	Password string `envconfig:"DATABASE_PASSWORD"`
 	DBName   string `envconfig:"DATABASE_DBNAME" required:"true"`
 	SSLMode  string `envconfig:"DATABASE_SSLMODE" default:"require"`
 }

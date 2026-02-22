@@ -13,7 +13,6 @@ func setRequiredEnvVars(t *testing.T) {
 	t.Helper()
 	t.Setenv("DATABASE_HOST", "localhost")
 	t.Setenv("DATABASE_USER", "test")
-	t.Setenv("DATABASE_PASSWORD", "test")
 	t.Setenv("DATABASE_DBNAME", "test")
 	t.Setenv("REDIS_HOST", "localhost")
 	t.Setenv("S3_ENDPOINT", "http://localhost:9000")
@@ -39,7 +38,6 @@ func TestLoad_Required(t *testing.T) {
 
 	t.Run("異常系: DATABASE_HOSTが設定されていない場合", func(t *testing.T) {
 		t.Setenv("DATABASE_USER", "test")
-		t.Setenv("DATABASE_PASSWORD", "test")
 		t.Setenv("DATABASE_DBNAME", "test")
 		t.Setenv("REDIS_HOST", "localhost")
 		t.Setenv("S3_ENDPOINT", "http://localhost:9000")
@@ -51,6 +49,19 @@ func TestLoad_Required(t *testing.T) {
 		_, err := config.Load()
 		if err == nil {
 			t.Fatal("Load()がエラーを返すべき")
+		}
+	})
+
+	t.Run("正常系: DATABASE_PASSWORDが未設定でもロードできる（IAM認証用）", func(t *testing.T) {
+		setRequiredEnvVars(t)
+
+		cfg, err := config.Load()
+		if err != nil {
+			t.Fatalf("Load()がエラーを返した: %v", err)
+		}
+
+		if cfg.Database.Password != "" {
+			t.Errorf("Database.Password = %q, want %q", cfg.Database.Password, "")
 		}
 	})
 }
