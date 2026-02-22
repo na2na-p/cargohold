@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
 )
@@ -32,7 +32,7 @@ type GitHubLoginHandlerConfig struct {
 }
 
 func GitHubLoginHandler(githubOAuthUC GitHubOAuthUseCaseInterface, cfg GitHubLoginHandlerConfig) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		host := c.Request().Host
 		if !IsHostAllowed(host, cfg.AllowedHosts) {
 			return middleware.NewAppError(
@@ -91,7 +91,7 @@ func IsHostAllowed(host string, allowedHosts []string) bool {
 	return false
 }
 
-func ResolveScheme(c echo.Context, trustProxy bool) string {
+func ResolveScheme(c *echo.Context, trustProxy bool) string {
 	if trustProxy {
 		forwarded := strings.ToLower(c.Request().Header.Get("X-Forwarded-Proto"))
 		if forwarded == "http" || forwarded == "https" {

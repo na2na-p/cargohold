@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/handler/auth"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
 	mockauth "github.com/na2na-p/cargohold/tests/handler/auth"

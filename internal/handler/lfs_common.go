@@ -4,7 +4,7 @@ import (
 	"errors"
 	"mime"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler/common"
 	"github.com/na2na-p/cargohold/internal/handler/response"
@@ -12,7 +12,7 @@ import (
 
 const GitLFSContentType = response.GitLFSContentType
 
-func ValidateLFSHeaders(c echo.Context) error {
+func ValidateLFSHeaders(c *echo.Context) error {
 	accept := c.Request().Header.Get(echo.HeaderAccept)
 	contentType := c.Request().Header.Get(echo.HeaderContentType)
 
@@ -29,6 +29,6 @@ func ValidateLFSHeaders(c echo.Context) error {
 	return nil
 }
 
-func ExtractRepositoryIdentifier(c echo.Context) (*domain.RepositoryIdentifier, error) {
+func ExtractRepositoryIdentifier(c *echo.Context) (*domain.RepositoryIdentifier, error) {
 	return common.ExtractRepositoryIdentifier(c)
 }

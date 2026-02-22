@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler/dto"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
@@ -25,7 +25,7 @@ func NewBatchHandler(batchUseCase usecase.BatchUseCaseInterface) *BatchHandler {
 	}
 }
 
-func (h *BatchHandler) Handle(c echo.Context) error {
+func (h *BatchHandler) Handle(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	if err := ValidateLFSHeaders(c); err != nil {
@@ -72,7 +72,7 @@ func (h *BatchHandler) Handle(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
-func (h *BatchHandler) checkPermissions(c echo.Context, operation string) error {
+func (h *BatchHandler) checkPermissions(c *echo.Context, operation string) error {
 	userInfoRaw := c.Get(middleware.UserInfoContextKey)
 	if userInfoRaw == nil {
 		return middleware.NewAppError(http.StatusForbidden, "認証情報が見つかりません", nil)
@@ -102,7 +102,7 @@ func (h *BatchHandler) checkPermissions(c echo.Context, operation string) error 
 	return nil
 }
 
-func getBaseURL(c echo.Context) string {
+func getBaseURL(c *echo.Context) string {
 	scheme := "http"
 	if c.Request().TLS != nil {
 		scheme = "https"
@@ -113,7 +113,7 @@ func getBaseURL(c echo.Context) string {
 	return scheme + "://" + c.Request().Host
 }
 
-func (h *BatchHandler) handleUseCaseError(_ echo.Context, err error) error {
+func (h *BatchHandler) handleUseCaseError(_ *echo.Context, err error) error {
 	switch {
 	case errors.Is(err, usecase.ErrInvalidOperation):
 		return middleware.NewAppError(http.StatusUnprocessableEntity, "不正なオペレーションです", err)

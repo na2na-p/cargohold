@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
 )
 
@@ -284,23 +284,6 @@ func TestCustomHTTPErrorHandler(t *testing.T) {
 			},
 		},
 		{
-			name: "正常系: echo.HTTPErrorのMessageが文字列以外の場合、デフォルトメッセージが返される",
-			args: args{
-				err:       echo.NewHTTPError(http.StatusBadRequest, 12345),
-				committed: false,
-				requestID: "req-non-string",
-				method:    http.MethodPost,
-				path:      "/api/test",
-			},
-			want: want{
-				statusCode:  http.StatusBadRequest,
-				bodyContain: "サーバー内部エラーが発生しました",
-				contentType: "application/vnd.git-lfs+json",
-				logLevel:    slog.LevelWarn,
-				logCalled:   true,
-			},
-		},
-		{
 			name: "正常系: /auth/パスでAppErrorの場合、JSON形式でエラーが返される",
 			args: args{
 				err:       middleware.NewAppError(http.StatusUnauthorized, "認証に失敗しました", errors.New("auth failed")),
@@ -351,10 +334,11 @@ func TestCustomHTTPErrorHandler(t *testing.T) {
 			}
 
 			if tt.args.committed {
-				c.Response().WriteHeader(http.StatusOK)
+				resp, _ := echo.UnwrapResponse(c.Response())
+				resp.WriteHeader(http.StatusOK)
 			}
 
-			middleware.CustomHTTPErrorHandler(tt.args.err, c)
+			middleware.CustomHTTPErrorHandler(c, tt.args.err)
 
 			if tt.args.committed {
 				if capture.called {
@@ -400,7 +384,7 @@ func TestCustomHTTPErrorHandler_LogAttributes(t *testing.T) {
 	c.Response().Header().Set(echo.HeaderXRequestID, "test-request-id")
 
 	testErr := errors.New("test error")
-	middleware.CustomHTTPErrorHandler(testErr, c)
+	middleware.CustomHTTPErrorHandler(c, testErr)
 
 	if !capture.called {
 		t.Fatal("CustomHTTPErrorHandler() log should be called")

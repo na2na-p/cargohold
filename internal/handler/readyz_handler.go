@@ -5,7 +5,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/usecase"
 )
 
@@ -23,7 +23,7 @@ func NewReadyzHandler(uc ReadinessUseCaseInterface) *ReadyzHandler {
 	}
 }
 
-func (h *ReadyzHandler) Handle(c echo.Context) error {
+func (h *ReadyzHandler) Handle(c *echo.Context) error {
 	ctx := c.Request().Context()
 
 	results, err := h.uc.ExecuteDetails(ctx)
