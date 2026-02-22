@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler/common"
 )
@@ -81,8 +81,10 @@ func TestExtractRepositoryIdentifier(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/"+tt.args.owner+"/"+tt.args.repo+"/info/lfs/objects/batch", nil)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetParamNames("owner", "repo")
-			c.SetParamValues(tt.args.owner, tt.args.repo)
+			c.SetPathValues(echo.PathValues{
+				{Name: "owner", Value: tt.args.owner},
+				{Name: "repo", Value: tt.args.repo},
+			})
 
 			got, err := common.ExtractRepositoryIdentifier(c)
 

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler/common"
 	"github.com/na2na-p/cargohold/internal/handler/response"
@@ -26,7 +26,7 @@ type AuthUseCaseInterface interface {
 
 func AuthDispatcher(authUC AuthUseCaseInterface) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			ctx := c.Request().Context()
 			authHeader := c.Request().Header.Get("Authorization")
 
@@ -79,7 +79,7 @@ func AuthDispatcher(authUC AuthUseCaseInterface) echo.MiddlewareFunc {
 	}
 }
 
-func validateRepository(c echo.Context, userInfo *domain.UserInfo) error {
+func validateRepository(c *echo.Context, userInfo *domain.UserInfo) error {
 	urlRepoIdentifier, err := common.ExtractRepositoryIdentifier(c)
 	if err != nil {
 		sendErr := response.SendLFSError(c, http.StatusBadRequest, "Invalid repository path")

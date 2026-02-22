@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/handler/common"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
 	"github.com/na2na-p/cargohold/internal/usecase"
 )
 
 func GitHubCallbackHandler(githubOAuthUC GitHubOAuthUseCaseInterface) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 
 		code := c.QueryParam("code")

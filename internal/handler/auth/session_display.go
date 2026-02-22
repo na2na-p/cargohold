@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
 )
 
 func SessionDisplayHandler() echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		sessionID := c.QueryParam("session_id")
 		if sessionID == "" {
 			return middleware.NewAppError(

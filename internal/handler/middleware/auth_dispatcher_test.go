@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
 	mock_middleware "github.com/na2na-p/cargohold/tests/handler/middleware"
@@ -413,11 +413,13 @@ func TestAuthDispatcher(t *testing.T) {
 			}
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetParamNames("owner", "repo")
-			c.SetParamValues(tt.args.owner, tt.args.repo)
+			c.SetPathValues(echo.PathValues{
+				{Name: "owner", Value: tt.args.owner},
+				{Name: "repo", Value: tt.args.repo},
+			})
 
 			nextCalled := false
-			nextHandler := func(c echo.Context) error {
+			nextHandler := func(c *echo.Context) error {
 				nextCalled = true
 				return c.NoContent(http.StatusOK)
 			}
