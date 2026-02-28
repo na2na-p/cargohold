@@ -44,13 +44,13 @@ func TestGitHubCallbackHandler(t *testing.T) {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
 					HandleCallback(gomock.Any(), "valid-auth-code", "valid-state").
-					Return("session-id-12345", nil)
+					Return("session-id-12345", "bash", nil)
 				return m
 			},
 			expectedStatus:           http.StatusFound,
 			expectCookie:             true,
 			expectedCookieName:       "lfs_session",
-			expectedRedirectLocation: "/auth/session?session_id=session-id-12345&host=example.com",
+			expectedRedirectLocation: "/auth/session?session_id=session-id-12345&host=example.com&shell=bash",
 			wantAppError:             false,
 		},
 		{
@@ -102,7 +102,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
 					HandleCallback(gomock.Any(), "valid-auth-code", "invalid-state").
-					Return("", fmt.Errorf("%w: state not found", usecase.ErrInvalidState))
+					Return("", "", fmt.Errorf("%w: state not found", usecase.ErrInvalidState))
 				return m
 			},
 			expectedStatus: http.StatusUnauthorized,
@@ -119,7 +119,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
 					HandleCallback(gomock.Any(), "valid-auth-code", "valid-state").
-					Return("", fmt.Errorf("%w: access denied", usecase.ErrRepositoryAccessDenied))
+					Return("", "", fmt.Errorf("%w: access denied", usecase.ErrRepositoryAccessDenied))
 				return m
 			},
 			expectedStatus: http.StatusForbidden,
@@ -136,7 +136,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
 					HandleCallback(gomock.Any(), "invalid-code", "valid-state").
-					Return("", fmt.Errorf("%w: exchange failed", usecase.ErrCodeExchangeFailed))
+					Return("", "", fmt.Errorf("%w: exchange failed", usecase.ErrCodeExchangeFailed))
 				return m
 			},
 			expectedStatus: http.StatusUnauthorized,
@@ -153,7 +153,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
 					HandleCallback(gomock.Any(), "valid-auth-code", "valid-state").
-					Return("", errors.New("unexpected error"))
+					Return("", "", errors.New("unexpected error"))
 				return m
 			},
 			expectedStatus: http.StatusInternalServerError,
@@ -232,6 +232,12 @@ func TestGitHubCallbackHandler(t *testing.T) {
 
 					if !strings.Contains(actualParams.Get("host"), expectedParams.Get("host")) {
 						t.Errorf("expected host param to contain %s, got %s", expectedParams.Get("host"), actualParams.Get("host"))
+					}
+
+					expectedShell := expectedParams.Get("shell")
+					actualShell := actualParams.Get("shell")
+					if expectedShell != actualShell {
+						t.Errorf("expected shell param %s, got %s", expectedShell, actualShell)
 					}
 				}
 			}

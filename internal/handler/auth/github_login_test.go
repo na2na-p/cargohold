@@ -38,7 +38,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			setupMock: func(ctrl *gomock.Controller) *mockauth.MockGitHubOAuthUseCaseInterface {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
-					StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any()).
+					StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("https://github.com/login/oauth/authorize?client_id=test&state=abc123", nil)
 				return m
 			},
@@ -59,7 +59,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			setupMock: func(ctrl *gomock.Controller) *mockauth.MockGitHubOAuthUseCaseInterface {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
-					StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any()).
+					StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("https://github.com/login/oauth/authorize?client_id=test&state=abc123", nil)
 				return m
 			},
@@ -150,7 +150,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			setupMock: func(ctrl *gomock.Controller) *mockauth.MockGitHubOAuthUseCaseInterface {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
-					StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any()).
+					StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", errors.New("usecase error"))
 				return m
 			},
@@ -401,8 +401,8 @@ func TestGitHubLoginHandler_XForwardedProto(t *testing.T) {
 			var capturedRedirect string
 			mockUC := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 			mockUC.EXPECT().
-				StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any()).
-				DoAndReturn(func(_ interface{}, _ interface{}, redirectURI string) (string, error) {
+				StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ interface{}, _ interface{}, redirectURI string, _ string) (string, error) {
 					capturedRedirect = redirectURI
 					return "https://github.com/login/oauth/authorize", nil
 				})

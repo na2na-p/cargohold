@@ -2,10 +2,11 @@ package auth
 
 import (
 	"errors"
-	"fmt"
+	"html"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
 )
 
@@ -29,13 +30,17 @@ func SessionDisplayHandler() echo.HandlerFunc {
 			)
 		}
 
-		html := generateSessionDisplayHTML(sessionID, host)
-		return c.HTML(http.StatusOK, html)
+		shellParam := c.QueryParam("shell")
+		shellType, _ := domain.ParseShellType(shellParam)
+
+		credentialCmd := shellType.CredentialCommand(host, sessionID)
+		htmlContent := generateSessionDisplayHTML(credentialCmd)
+		return c.HTML(http.StatusOK, htmlContent)
 	}
 }
 
-func generateSessionDisplayHTML(sessionID, host string) string {
-	return fmt.Sprintf(`<!DOCTYPE html>
+func generateSessionDisplayHTML(credentialCmd string) string {
+	return `<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -78,14 +83,9 @@ func generateSessionDisplayHTML(sessionID, host string) string {
     <div class="container">
         <h1>認証成功！</h1>
         <p>Git LFS を使用するには、以下のコマンドを実行してください：</p>
-        <pre>git credential approve &lt;&lt;EOF
-protocol=https
-host=%s
-username=x-session
-password=%s
-EOF</pre>
+        <pre>` + html.EscapeString(credentialCmd) + `</pre>
         <p class="note">セッションの有効期限: 24時間</p>
     </div>
 </body>
-</html>`, host, sessionID)
+</html>`
 }

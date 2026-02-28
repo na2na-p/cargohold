@@ -11,6 +11,7 @@ import (
 type oauthStateDTO struct {
 	Repository  string `json:"repository"`
 	RedirectURI string `json:"redirect_uri"`
+	Shell       string `json:"shell,omitempty"`
 }
 
 type OAuthStateStore struct {
@@ -28,6 +29,7 @@ func (s *OAuthStateStore) SaveState(ctx context.Context, state string, data *dom
 	dto := &oauthStateDTO{
 		Repository:  data.Repository(),
 		RedirectURI: data.RedirectURI(),
+		Shell:       data.Shell(),
 	}
 	err := s.client.SetJSON(ctx, key, dto, ttl)
 	if err != nil {
@@ -45,5 +47,5 @@ func (s *OAuthStateStore) GetAndDeleteState(ctx context.Context, state string) (
 		return nil, fmt.Errorf("OAuth state の取得と削除に失敗しました: %w", err)
 	}
 
-	return domain.NewOAuthState(dto.Repository, dto.RedirectURI), nil
+	return domain.NewOAuthState(dto.Repository, dto.RedirectURI, dto.Shell), nil
 }

@@ -42,12 +42,13 @@ func (m *MockGitHubOAuthUseCaseInterface) EXPECT() *MockGitHubOAuthUseCaseInterf
 }
 
 // HandleCallback mocks base method.
-func (m *MockGitHubOAuthUseCaseInterface) HandleCallback(ctx context.Context, code, state string) (string, error) {
+func (m *MockGitHubOAuthUseCaseInterface) HandleCallback(ctx context.Context, code, state string) (string, string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleCallback", ctx, code, state)
 	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // HandleCallback indicates an expected call of HandleCallback.
@@ -57,16 +58,16 @@ func (mr *MockGitHubOAuthUseCaseInterfaceMockRecorder) HandleCallback(ctx, code,
 }
 
 // StartAuthentication mocks base method.
-func (m *MockGitHubOAuthUseCaseInterface) StartAuthentication(ctx context.Context, repository *domain.RepositoryIdentifier, redirectURI string) (string, error) {
+func (m *MockGitHubOAuthUseCaseInterface) StartAuthentication(ctx context.Context, repository *domain.RepositoryIdentifier, redirectURI string, shell string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StartAuthentication", ctx, repository, redirectURI)
+	ret := m.ctrl.Call(m, "StartAuthentication", ctx, repository, redirectURI, shell)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // StartAuthentication indicates an expected call of StartAuthentication.
-func (mr *MockGitHubOAuthUseCaseInterfaceMockRecorder) StartAuthentication(ctx, repository, redirectURI any) *gomock.Call {
+func (mr *MockGitHubOAuthUseCaseInterfaceMockRecorder) StartAuthentication(ctx, repository, redirectURI, shell any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartAuthentication", reflect.TypeOf((*MockGitHubOAuthUseCaseInterface)(nil).StartAuthentication), ctx, repository, redirectURI)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartAuthentication", reflect.TypeOf((*MockGitHubOAuthUseCaseInterface)(nil).StartAuthentication), ctx, repository, redirectURI, shell)
 }
