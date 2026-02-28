@@ -45,7 +45,7 @@ func TestOAuthStateStore_SaveState(t *testing.T) {
 			args: args{
 				ctx:   context.Background(),
 				state: "test-state-123",
-				data:  domain.NewOAuthState("owner/repo", "https://example.com/callback", ""),
+				data:  domain.NewOAuthState("owner/repo", "https://example.com/callback", domain.ShellType{}),
 				ttl:   redis.OIDCStateTTL,
 			},
 			wantErr: false,
@@ -100,7 +100,7 @@ func TestOAuthStateStore_GetAndDeleteState(t *testing.T) {
 				ctx:   context.Background(),
 				state: "test-state-123",
 			},
-			want:    domain.NewOAuthState("owner/repo", "https://example.com/callback", ""),
+			want:    domain.NewOAuthState("owner/repo", "https://example.com/callback", domain.ShellType{}),
 			wantErr: false,
 		},
 		{

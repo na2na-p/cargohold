@@ -33,7 +33,7 @@ func SessionDisplayHandler() echo.HandlerFunc {
 		shellParam := c.QueryParam("shell")
 		shellType, _ := domain.ParseShellType(shellParam)
 
-		credentialCmd := shellType.CredentialCommand(host, sessionID)
+		credentialCmd := domain.NewCredentialCommand(shellType, host, sessionID).String()
 		htmlContent := generateSessionDisplayHTML(credentialCmd)
 		return c.HTML(http.StatusOK, htmlContent)
 	}

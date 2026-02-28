@@ -42,11 +42,11 @@ func (m *MockGitHubOAuthUseCaseInterface) EXPECT() *MockGitHubOAuthUseCaseInterf
 }
 
 // HandleCallback mocks base method.
-func (m *MockGitHubOAuthUseCaseInterface) HandleCallback(ctx context.Context, code, state string) (string, string, error) {
+func (m *MockGitHubOAuthUseCaseInterface) HandleCallback(ctx context.Context, code, state string) (string, domain.ShellType, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleCallback", ctx, code, state)
 	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(string)
+	ret1, _ := ret[1].(domain.ShellType)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
@@ -58,7 +58,7 @@ func (mr *MockGitHubOAuthUseCaseInterfaceMockRecorder) HandleCallback(ctx, code,
 }
 
 // StartAuthentication mocks base method.
-func (m *MockGitHubOAuthUseCaseInterface) StartAuthentication(ctx context.Context, repository *domain.RepositoryIdentifier, redirectURI string, shell string) (string, error) {
+func (m *MockGitHubOAuthUseCaseInterface) StartAuthentication(ctx context.Context, repository *domain.RepositoryIdentifier, redirectURI string, shell domain.ShellType) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StartAuthentication", ctx, repository, redirectURI, shell)
 	ret0, _ := ret[0].(string)

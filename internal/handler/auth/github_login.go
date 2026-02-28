@@ -18,13 +18,13 @@ type GitHubOAuthUseCaseInterface interface {
 		ctx context.Context,
 		repository *domain.RepositoryIdentifier,
 		redirectURI string,
-		shell string,
+		shell domain.ShellType,
 	) (string, error)
 	HandleCallback(
 		ctx context.Context,
 		code string,
 		state string,
-	) (string, string, error)
+	) (string, domain.ShellType, error)
 }
 
 type GitHubLoginHandlerConfig struct {
@@ -62,7 +62,8 @@ func GitHubLoginHandler(githubOAuthUC GitHubOAuthUseCaseInterface, cfg GitHubLog
 		}
 
 		shellParam := c.QueryParam("shell")
-		if _, err := domain.ParseShellType(shellParam); err != nil {
+		shellType, err := domain.ParseShellType(shellParam)
+		if err != nil {
 			return middleware.NewAppError(
 				http.StatusBadRequest,
 				"shellパラメータの値が不正です",
@@ -73,7 +74,7 @@ func GitHubLoginHandler(githubOAuthUC GitHubOAuthUseCaseInterface, cfg GitHubLog
 		scheme := ResolveScheme(c, cfg.TrustProxy)
 		redirectURI := scheme + "://" + host + "/auth/github/callback"
 
-		authURL, err := githubOAuthUC.StartAuthentication(c.Request().Context(), repository, redirectURI, shellParam)
+		authURL, err := githubOAuthUC.StartAuthentication(c.Request().Context(), repository, redirectURI, shellType)
 		if err != nil {
 			return middleware.NewAppError(
 				http.StatusInternalServerError,

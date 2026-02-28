@@ -193,7 +193,7 @@ func TestGitHubOAuthUseCase_StartAuthentication(t *testing.T) {
 				t.Fatalf("NewGitHubOAuthUseCase() unexpected error: %v", err)
 			}
 
-			authURL, err := uc.StartAuthentication(ctx, tt.args.repository, tt.args.redirectURI, "")
+			authURL, err := uc.StartAuthentication(ctx, tt.args.repository, tt.args.redirectURI, domain.ShellType{})
 
 			if tt.wantErr != nil {
 				if err == nil {
@@ -225,6 +225,7 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 		setupMocks    func(ctrl *gomock.Controller) (*mock_usecase.MockGitHubOAuthProviderInterface, *mock_usecase.MockSessionStoreInterface, *mock_usecase.MockOAuthStateStoreInterface)
 		wantErr       error
 		wantSessionID bool
+		wantShell     domain.ShellType
 	}{
 		{
 			name: "正常系: コールバックを処理し、セッションIDを返す",
@@ -239,7 +240,7 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 
 				repo, _ := domain.NewRepositoryIdentifier("owner/repo")
 
-				stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", ""), nil)
+				stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", domain.ShellTypeBash), nil)
 
 				oauthProvider.EXPECT().SetRedirectURI("https://example.com/callback")
 
@@ -265,6 +266,7 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 			},
 			wantErr:       nil,
 			wantSessionID: true,
+			wantShell:     domain.ShellTypeBash,
 		},
 		{
 			name: "異常系: codeが空の場合エラー",
@@ -325,7 +327,7 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 				sessionStore := mock_usecase.NewMockSessionStoreInterface(ctrl)
 				stateStore := mock_usecase.NewMockOAuthStateStoreInterface(ctrl)
 
-				stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", ""), nil)
+				stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", domain.ShellType{}), nil)
 
 				oauthProvider.EXPECT().SetRedirectURI("https://example.com/callback")
 
@@ -347,7 +349,7 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 				sessionStore := mock_usecase.NewMockSessionStoreInterface(ctrl)
 				stateStore := mock_usecase.NewMockOAuthStateStoreInterface(ctrl)
 
-				stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", ""), nil)
+				stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", domain.ShellType{}), nil)
 
 				oauthProvider.EXPECT().SetRedirectURI("https://example.com/callback")
 
@@ -377,7 +379,7 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 
 				repo, _ := domain.NewRepositoryIdentifier("owner/repo")
 
-				stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", ""), nil)
+				stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", domain.ShellType{}), nil)
 
 				oauthProvider.EXPECT().SetRedirectURI("https://example.com/callback")
 
@@ -414,7 +416,7 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 
 				repo, _ := domain.NewRepositoryIdentifier("owner/repo")
 
-				stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", ""), nil)
+				stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", domain.ShellType{}), nil)
 
 				oauthProvider.EXPECT().SetRedirectURI("https://example.com/callback")
 
@@ -450,7 +452,7 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 
 				repo, _ := domain.NewRepositoryIdentifier("owner/repo")
 
-				stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", ""), nil)
+				stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", domain.ShellType{}), nil)
 
 				oauthProvider.EXPECT().SetRedirectURI("https://example.com/callback")
 
@@ -491,7 +493,7 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 				t.Fatalf("NewGitHubOAuthUseCase() unexpected error: %v", err)
 			}
 
-			sessionID, _, err := uc.HandleCallback(ctx, tt.args.code, tt.args.state)
+			sessionID, shell, err := uc.HandleCallback(ctx, tt.args.code, tt.args.state)
 
 			if tt.wantErr != nil {
 				if err == nil {
@@ -506,6 +508,9 @@ func TestGitHubOAuthUseCase_HandleCallback(t *testing.T) {
 				}
 				if tt.wantSessionID && sessionID == "" {
 					t.Errorf("HandleCallback() sessionID is empty")
+				}
+				if diff := cmp.Diff(tt.wantShell.String(), shell.String()); diff != "" {
+					t.Errorf("HandleCallback() shell mismatch (-want +got):\n%s", diff)
 				}
 			}
 		})
@@ -523,7 +528,7 @@ func TestGitHubOAuthUseCase_HandleCallback_UserInfoMapping(t *testing.T) {
 
 	repo, _ := domain.NewRepositoryIdentifier("owner/repo")
 
-	stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", ""), nil)
+	stateStore.EXPECT().GetAndDeleteState(gomock.Any(), "valid-state").Return(domain.NewOAuthState("owner/repo", "https://example.com/callback", domain.ShellType{}), nil)
 
 	oauthProvider.EXPECT().SetRedirectURI("https://example.com/callback")
 

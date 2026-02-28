@@ -3,10 +3,10 @@ package domain
 type OAuthState struct {
 	repository  string
 	redirectURI string
-	shell       string
+	shell       ShellType
 }
 
-func NewOAuthState(repository, redirectURI, shell string) *OAuthState {
+func NewOAuthState(repository, redirectURI string, shell ShellType) *OAuthState {
 	return &OAuthState{
 		repository:  repository,
 		redirectURI: redirectURI,
@@ -22,6 +22,6 @@ func (o *OAuthState) RedirectURI() string {
 	return o.redirectURI
 }
 
-func (o *OAuthState) Shell() string {
+func (o *OAuthState) Shell() ShellType {
 	return o.shell
 }

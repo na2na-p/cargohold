@@ -2,7 +2,6 @@ package domain_test
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -97,66 +96,3 @@ func TestShellType_String(t *testing.T) {
 	}
 }
 
-func TestShellType_CredentialCommand(t *testing.T) {
-	tests := []struct {
-		name      string
-		shellType domain.ShellType
-		host      string
-		sessionID string
-		wantParts []string
-	}{
-		{
-			name:      "bash: heredoc構文が使用される",
-			shellType: domain.ShellTypeBash,
-			host:      "example.com",
-			sessionID: "session-123",
-			wantParts: []string{
-				"git credential approve <<EOF",
-				"protocol=https",
-				"host=example.com",
-				"username=x-session",
-				"password=session-123",
-				"EOF",
-			},
-		},
-		{
-			name:      "zsh: heredoc構文が使用される",
-			shellType: domain.ShellTypeZsh,
-			host:      "example.com",
-			sessionID: "session-123",
-			wantParts: []string{
-				"git credential approve <<EOF",
-				"protocol=https",
-				"host=example.com",
-				"username=x-session",
-				"password=session-123",
-				"EOF",
-			},
-		},
-		{
-			name:      "powershell: here-string構文が使用される",
-			shellType: domain.ShellTypePowerShell,
-			host:      "example.com",
-			sessionID: "session-123",
-			wantParts: []string{
-				`@"`,
-				"protocol=https",
-				"host=example.com",
-				"username=x-session",
-				"password=session-123",
-				`"@ | git credential approve`,
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := tt.shellType.CredentialCommand(tt.host, tt.sessionID)
-			for _, part := range tt.wantParts {
-				if !strings.Contains(got, part) {
-					t.Errorf("CredentialCommand() missing %q.\nGot: %s", part, got)
-				}
-			}
-		})
-	}
-}

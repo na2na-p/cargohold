@@ -15,6 +15,7 @@ func TestSessionDisplayHandler(t *testing.T) {
 	type args struct {
 		sessionID string
 		host      string
+		shell     string
 	}
 	tests := []struct {
 		name             string
@@ -38,6 +39,25 @@ func TestSessionDisplayHandler(t *testing.T) {
 				"protocol=https",
 				"username=x-session",
 				"24",
+			},
+		},
+		{
+			name: "正常系: shell=powershellの場合、PowerShell形式のコマンドが表示される",
+			args: args{
+				sessionID: "test-session-id-12345",
+				host:      "cargohold.example.com",
+				shell:     "powershell",
+			},
+			expectedStatus: http.StatusOK,
+			wantAppError:   false,
+			expectedContains: []string{
+				"test-session-id-12345",
+				"cargohold.example.com",
+				"git credential approve",
+				"protocol=https",
+				"username=x-session",
+				`@&#34;`,
+				`&#34;@ | git credential approve`,
 			},
 		},
 		{
@@ -83,6 +103,12 @@ func TestSessionDisplayHandler(t *testing.T) {
 					queryParams += "&"
 				}
 				queryParams += "host=" + tt.args.host
+			}
+			if tt.args.shell != "" {
+				if queryParams != "" {
+					queryParams += "&"
+				}
+				queryParams += "shell=" + tt.args.shell
 			}
 			if queryParams != "" {
 				url += "?" + queryParams

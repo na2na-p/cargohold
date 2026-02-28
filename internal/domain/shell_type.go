@@ -37,22 +37,3 @@ func (s ShellType) String() string {
 func (s ShellType) IsZero() bool {
 	return s.value == ""
 }
-
-func (s ShellType) CredentialCommand(host, sessionID string) string {
-	switch s {
-	case ShellTypePowerShell:
-		return fmt.Sprintf(`@"
-protocol=https
-host=%s
-username=x-session
-password=%s
-"@ | git credential approve`, host, sessionID)
-	default:
-		return fmt.Sprintf(`git credential approve <<EOF
-protocol=https
-host=%s
-username=x-session
-password=%s
-EOF`, host, sessionID)
-	}
-}

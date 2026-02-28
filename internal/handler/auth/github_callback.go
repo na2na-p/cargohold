@@ -33,7 +33,7 @@ func GitHubCallbackHandler(githubOAuthUC GitHubOAuthUseCaseInterface) echo.Handl
 			)
 		}
 
-		sessionID, shell, err := githubOAuthUC.HandleCallback(ctx, code, state)
+		sessionID, shellType, err := githubOAuthUC.HandleCallback(ctx, code, state)
 		if err != nil {
 			return handleCallbackError(err)
 		}
@@ -51,8 +51,8 @@ func GitHubCallbackHandler(githubOAuthUC GitHubOAuthUseCaseInterface) echo.Handl
 
 		host := c.Request().Host
 		redirectURL := "/auth/session?session_id=" + sessionID + "&host=" + url.QueryEscape(host)
-		if shell != "" {
-			redirectURL += "&shell=" + url.QueryEscape(shell)
+		if !shellType.IsZero() {
+			redirectURL += "&shell=" + url.QueryEscape(shellType.String())
 		}
 		return c.Redirect(http.StatusFound, redirectURL)
 	}
