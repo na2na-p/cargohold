@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
+	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler/auth"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
 	"github.com/na2na-p/cargohold/internal/usecase"
@@ -44,13 +45,13 @@ func TestGitHubCallbackHandler(t *testing.T) {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
 					HandleCallback(gomock.Any(), "valid-auth-code", "valid-state").
-					Return("session-id-12345", nil)
+					Return("session-id-12345", domain.ShellTypeBash, nil)
 				return m
 			},
 			expectedStatus:           http.StatusFound,
 			expectCookie:             true,
 			expectedCookieName:       "lfs_session",
-			expectedRedirectLocation: "/auth/session?session_id=session-id-12345&host=example.com",
+			expectedRedirectLocation: "/auth/session?session_id=session-id-12345&host=example.com&shell=bash",
 			wantAppError:             false,
 		},
 		{
@@ -102,7 +103,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
 					HandleCallback(gomock.Any(), "valid-auth-code", "invalid-state").
-					Return("", fmt.Errorf("%w: state not found", usecase.ErrInvalidState))
+					Return("", domain.ShellType{}, fmt.Errorf("%w: state not found", usecase.ErrInvalidState))
 				return m
 			},
 			expectedStatus: http.StatusUnauthorized,
@@ -119,7 +120,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
 					HandleCallback(gomock.Any(), "valid-auth-code", "valid-state").
-					Return("", fmt.Errorf("%w: access denied", usecase.ErrRepositoryAccessDenied))
+					Return("", domain.ShellType{}, fmt.Errorf("%w: access denied", usecase.ErrRepositoryAccessDenied))
 				return m
 			},
 			expectedStatus: http.StatusForbidden,
@@ -136,12 +137,32 @@ func TestGitHubCallbackHandler(t *testing.T) {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
 					HandleCallback(gomock.Any(), "invalid-code", "valid-state").
-					Return("", fmt.Errorf("%w: exchange failed", usecase.ErrCodeExchangeFailed))
+					Return("", domain.ShellType{}, fmt.Errorf("%w: exchange failed", usecase.ErrCodeExchangeFailed))
 				return m
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectCookie:   false,
 			wantAppError:   true,
+		},
+		{
+			name: "正常系: shellがゼロ値の場合はリダイレクトURLにshellパラメータが付与されない",
+			args: args{
+				code:  "valid-auth-code",
+				state: "valid-state",
+			},
+			host: "example.com",
+			setupMock: func(ctrl *gomock.Controller) *mockauth.MockGitHubOAuthUseCaseInterface {
+				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
+				m.EXPECT().
+					HandleCallback(gomock.Any(), "valid-auth-code", "valid-state").
+					Return("session-id-12345", domain.ShellType{}, nil)
+				return m
+			},
+			expectedStatus:           http.StatusFound,
+			expectCookie:             true,
+			expectedCookieName:       "lfs_session",
+			expectedRedirectLocation: "/auth/session?session_id=session-id-12345&host=example.com",
+			wantAppError:             false,
 		},
 		{
 			name: "異常系: その他のエラーの場合はInternalServerErrorを返す",
@@ -153,7 +174,7 @@ func TestGitHubCallbackHandler(t *testing.T) {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
 					HandleCallback(gomock.Any(), "valid-auth-code", "valid-state").
-					Return("", errors.New("unexpected error"))
+					Return("", domain.ShellType{}, errors.New("unexpected error"))
 				return m
 			},
 			expectedStatus: http.StatusInternalServerError,
@@ -232,6 +253,15 @@ func TestGitHubCallbackHandler(t *testing.T) {
 
 					if !strings.Contains(actualParams.Get("host"), expectedParams.Get("host")) {
 						t.Errorf("expected host param to contain %s, got %s", expectedParams.Get("host"), actualParams.Get("host"))
+					}
+
+					expectedShell := expectedParams.Get("shell")
+					actualShell := actualParams.Get("shell")
+					if expectedShell != actualShell {
+						t.Errorf("expected shell param %s, got %s", expectedShell, actualShell)
+					}
+					if expectedShell == "" && actualParams.Has("shell") {
+						t.Errorf("expected no shell param in URL, but found shell=%s", actualShell)
 					}
 				}
 			}

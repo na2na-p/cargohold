@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/labstack/echo/v4"
+	"github.com/na2na-p/cargohold/internal/domain"
 	"github.com/na2na-p/cargohold/internal/handler/auth"
 	"github.com/na2na-p/cargohold/internal/handler/middleware"
 	mockauth "github.com/na2na-p/cargohold/tests/handler/auth"
@@ -18,6 +19,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 	type args struct {
 		repository string
 		host       string
+		shell      string
 	}
 	tests := []struct {
 		name           string
@@ -38,7 +40,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			setupMock: func(ctrl *gomock.Controller) *mockauth.MockGitHubOAuthUseCaseInterface {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
-					StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any()).
+					StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("https://github.com/login/oauth/authorize?client_id=test&state=abc123", nil)
 				return m
 			},
@@ -59,7 +61,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			setupMock: func(ctrl *gomock.Controller) *mockauth.MockGitHubOAuthUseCaseInterface {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
-					StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any()).
+					StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("https://github.com/login/oauth/authorize?client_id=test&state=abc123", nil)
 				return m
 			},
@@ -141,6 +143,21 @@ func TestGitHubLoginHandler(t *testing.T) {
 			wantAppError:   true,
 		},
 		{
+			name: "異常系: 不正なshell値が指定された場合はBadRequestを返す",
+			args: args{
+				repository: "owner/repo",
+				host:       "example.com",
+				shell:      "fish",
+			},
+			cfg: auth.GitHubLoginHandlerConfig{TrustProxy: false},
+			setupMock: func(ctrl *gomock.Controller) *mockauth.MockGitHubOAuthUseCaseInterface {
+				return mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedURL:    "",
+			wantAppError:   true,
+		},
+		{
 			name: "異常系: UseCaseでエラーが発生した場合はInternalServerErrorを返す",
 			args: args{
 				repository: "owner/repo",
@@ -150,7 +167,7 @@ func TestGitHubLoginHandler(t *testing.T) {
 			setupMock: func(ctrl *gomock.Controller) *mockauth.MockGitHubOAuthUseCaseInterface {
 				m := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 				m.EXPECT().
-					StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any()).
+					StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", errors.New("usecase error"))
 				return m
 			},
@@ -169,6 +186,14 @@ func TestGitHubLoginHandler(t *testing.T) {
 			url := "/auth/github/login"
 			if tt.args.repository != "" {
 				url += "?repository=" + tt.args.repository
+			}
+			if tt.args.shell != "" {
+				if tt.args.repository != "" {
+					url += "&"
+				} else {
+					url += "?"
+				}
+				url += "shell=" + tt.args.shell
 			}
 
 			req := httptest.NewRequest(http.MethodGet, url, nil)
@@ -401,8 +426,8 @@ func TestGitHubLoginHandler_XForwardedProto(t *testing.T) {
 			var capturedRedirect string
 			mockUC := mockauth.NewMockGitHubOAuthUseCaseInterface(ctrl)
 			mockUC.EXPECT().
-				StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any()).
-				DoAndReturn(func(_ interface{}, _ interface{}, redirectURI string) (string, error) {
+				StartAuthentication(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ interface{}, _ interface{}, redirectURI string, _ domain.ShellType) (string, error) {
 					capturedRedirect = redirectURI
 					return "https://github.com/login/oauth/authorize", nil
 				})

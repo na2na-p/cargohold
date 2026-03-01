@@ -15,6 +15,7 @@ import (
 type oauthStateDTO struct {
 	Repository  string `json:"repository"`
 	RedirectURI string `json:"redirect_uri"`
+	Shell       string `json:"shell,omitempty"`
 }
 
 func TestOAuthStateStore_SaveState(t *testing.T) {
@@ -44,7 +45,7 @@ func TestOAuthStateStore_SaveState(t *testing.T) {
 			args: args{
 				ctx:   context.Background(),
 				state: "test-state-123",
-				data:  domain.NewOAuthState("owner/repo", "https://example.com/callback"),
+				data:  domain.NewOAuthState("owner/repo", "https://example.com/callback", domain.ShellType{}),
 				ttl:   redis.OIDCStateTTL,
 			},
 			wantErr: false,
@@ -99,7 +100,7 @@ func TestOAuthStateStore_GetAndDeleteState(t *testing.T) {
 				ctx:   context.Background(),
 				state: "test-state-123",
 			},
-			want:    domain.NewOAuthState("owner/repo", "https://example.com/callback"),
+			want:    domain.NewOAuthState("owner/repo", "https://example.com/callback", domain.ShellType{}),
 			wantErr: false,
 		},
 		{
@@ -140,7 +141,7 @@ func TestOAuthStateStore_GetAndDeleteState(t *testing.T) {
 					if a == nil || b == nil {
 						return false
 					}
-					return a.Repository() == b.Repository() && a.RedirectURI() == b.RedirectURI()
+					return a.Repository() == b.Repository() && a.RedirectURI() == b.RedirectURI() && a.Shell() == b.Shell()
 				}),
 			}
 			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {

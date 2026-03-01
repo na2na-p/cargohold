@@ -46,6 +46,7 @@ func (u *GitHubOAuthUseCase) StartAuthentication(
 	ctx context.Context,
 	repository *domain.RepositoryIdentifier,
 	redirectURI string,
+	shell domain.ShellType,
 ) (string, error) {
 	if repository == nil {
 		return "", fmt.Errorf("%w: repository is nil", ErrInvalidRepository)
@@ -61,7 +62,7 @@ func (u *GitHubOAuthUseCase) StartAuthentication(
 
 	state := uuid.New().String()
 
-	stateData := domain.NewOAuthState(repository.FullName(), redirectURI)
+	stateData := domain.NewOAuthState(repository.FullName(), redirectURI, shell)
 
 	if err := u.stateStore.SaveState(ctx, state, stateData, OIDCStateTTL); err != nil {
 		return "", fmt.Errorf("%w: %v", ErrStateSaveFailed, err)
@@ -77,43 +78,43 @@ func (u *GitHubOAuthUseCase) HandleCallback(
 	ctx context.Context,
 	code string,
 	state string,
-) (string, error) {
+) (string, domain.ShellType, error) {
 	if code == "" {
-		return "", fmt.Errorf("%w: missing code", ErrInvalidCode)
+		return "", domain.ShellType{}, fmt.Errorf("%w: missing code", ErrInvalidCode)
 	}
 
 	if state == "" {
-		return "", fmt.Errorf("%w: missing state", ErrInvalidState)
+		return "", domain.ShellType{}, fmt.Errorf("%w: missing state", ErrInvalidState)
 	}
 
 	stateData, err := u.stateStore.GetAndDeleteState(ctx, state)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrInvalidState, err)
+		return "", domain.ShellType{}, fmt.Errorf("%w: %v", ErrInvalidState, err)
 	}
 
 	repository, err := domain.NewRepositoryIdentifier(stateData.Repository())
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrInvalidRepository, err)
+		return "", domain.ShellType{}, fmt.Errorf("%w: %v", ErrInvalidRepository, err)
 	}
 
 	u.oauthProvider.SetRedirectURI(stateData.RedirectURI())
 	token, err := u.oauthProvider.ExchangeCode(ctx, code)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrCodeExchangeFailed, err)
+		return "", domain.ShellType{}, fmt.Errorf("%w: %v", ErrCodeExchangeFailed, err)
 	}
 
 	githubUser, err := u.oauthProvider.GetUserInfo(ctx, token)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrUserInfoFailed, err)
+		return "", domain.ShellType{}, fmt.Errorf("%w: %v", ErrUserInfoFailed, err)
 	}
 
 	permissions, err := u.oauthProvider.GetRepositoryPermissions(ctx, token, repository)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrRepositoryAccessCheckFailed, err)
+		return "", domain.ShellType{}, fmt.Errorf("%w: %v", ErrRepositoryAccessCheckFailed, err)
 	}
 
 	if !permissions.CanDownload() {
-		return "", fmt.Errorf("%w: user cannot access repository %s", ErrRepositoryAccessDenied, repository.FullName())
+		return "", domain.ShellType{}, fmt.Errorf("%w: user cannot access repository %s", ErrRepositoryAccessDenied, repository.FullName())
 	}
 
 	userInfo, err := domain.NewUserInfo(
@@ -125,15 +126,15 @@ func (u *GitHubOAuthUseCase) HandleCallback(
 		"",
 	)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrUserInfoCreationFailed, err)
+		return "", domain.ShellType{}, fmt.Errorf("%w: %v", ErrUserInfoCreationFailed, err)
 	}
 
 	userInfo.SetPermissions(&permissions)
 
 	sessionID, err := u.sessionStore.CreateSession(ctx, userInfo, SessionTTL)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrSessionCreationFailed, err)
+		return "", domain.ShellType{}, fmt.Errorf("%w: %v", ErrSessionCreationFailed, err)
 	}
 
-	return sessionID, nil
+	return sessionID, stateData.Shell(), nil
 }
