@@ -95,4 +95,3 @@ func TestShellType_String(t *testing.T) {
 		})
 	}
 }
-
