@@ -18,6 +18,7 @@ require (
 	github.com/newmo-oss/ctxtime v0.2.2
 	github.com/newmo-oss/testid v0.2.0
 	github.com/pashagolub/pgxmock/v4 v4.9.0
+	github.com/pashagolub/pgxmock/v5 v5.0.1
 	github.com/redis/go-redis/v9 v9.18.0
 	go.uber.org/mock v0.6.0
 )
