@@ -3,10 +3,10 @@ module github.com/na2na-p/cargohold
 go 1.25.5
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.41.5
-	github.com/aws/aws-sdk-go-v2/credentials v1.19.12
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.97.3
-	github.com/aws/smithy-go v1.24.2
+	github.com/aws/aws-sdk-go-v2 v1.41.6
+	github.com/aws/aws-sdk-go-v2/credentials v1.19.15
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.99.1
+	github.com/aws/smithy-go v1.25.0
 	github.com/go-redis/redismock/v9 v9.2.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/go-cmp v0.7.0
@@ -14,7 +14,7 @@ require (
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/labstack/echo/v4 v4.15.1
-	github.com/lib/pq v1.12.0
+	github.com/lib/pq v1.12.3
 	github.com/newmo-oss/ctxtime v0.2.2
 	github.com/newmo-oss/testid v0.2.0
 	github.com/pashagolub/pgxmock/v4 v4.9.0
@@ -23,14 +23,14 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.8 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.21 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.21 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.22 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.13 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.21 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.21 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.9 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.22 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.22 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.23 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.8 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.14 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.22 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.22 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
