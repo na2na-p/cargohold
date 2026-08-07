@@ -1,4 +1,4 @@
-FROM golang:1.26.1-alpine AS builder
+FROM golang:1.26.5-alpine AS builder
 
 WORKDIR /build
 
@@ -16,7 +16,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 	-o cargohold \
 	./cmd/cargohold/main.go
 
-FROM alpine:3.23
+FROM alpine:3.24
 
 LABEL description="cargohold - Git LFS Server"
 
