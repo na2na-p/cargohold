@@ -1,4 +1,4 @@
-FROM golang:1.26.1-alpine AS builder
+FROM golang:1.26.5-alpine AS builder
 
 WORKDIR /build
 
@@ -7,7 +7,7 @@ RUN apk add --no-cache git ca-certificates
 # Install goose for database migrations
 RUN CGO_ENABLED=0 go install github.com/pressly/goose/v3/cmd/goose@latest
 
-FROM alpine:3.23
+FROM alpine:3.24
 
 LABEL description="cargohold-migration - Database Migration Tool"
 
