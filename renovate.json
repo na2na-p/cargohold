@@ -12,6 +12,11 @@
 	"labels": ["renovate"],
 	"packageRules": [
 		{
+			"description": "Docker イメージを digest pin する。floating tag (postgres:18-alpine, *:latest) は実体が drift しても差分が見えず、#56 では postgres:18-alpine の drift が e2e を壊した状態で気付けなかった。digest を固定して実体変化を PR として CI に通す",
+			"matchCategories": ["docker"],
+			"pinDigests": true
+		},
+		{
 			"matchUpdateTypes": ["major"],
 			"addLabels": ["major update"]
 		},
@@ -43,6 +48,18 @@
 			"matchManagers": ["github-actions"],
 			"matchUpdateTypes": ["major"],
 			"groupName": "GitHub Actions (Major)"
+		},
+		{
+			"description": "compose の dev/CI 用イメージは digest 更新の頻度が高い (latest タグを含む) ため 1 PR にまとめる。バージョン自体の更新は個別 PR のまま",
+			"matchManagers": ["docker-compose"],
+			"matchUpdateTypes": ["digest", "pinDigest"],
+			"groupName": "compose images (digest)"
+		},
+		{
+			"description": "Go 依存の patch は go-ci (fmt/vet/lint/race×3/coverage/build) と e2e が PR 上で検証するため automerge する。minimumReleaseAge 7 日のゲートも併せて効く",
+			"matchManagers": ["gomod"],
+			"matchUpdateTypes": ["patch"],
+			"automerge": true
 		}
 	],
 	"customManagers": [
