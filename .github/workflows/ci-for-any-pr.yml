@@ -31,26 +31,36 @@ jobs:
         uses: dorny/paths-filter@v4
         id: changes
         with:
+          # 各カテゴリには、それを駆動する reusable workflow 自身と
+          # オーケストレータ (このファイル) も含める。workflow を書き換えたのに
+          # 当の CI が skip されると変更が無検証のまま main に入るため
           filters: |
             go-code:
               - '**/*.go'
               - 'go.mod'
               - 'go.sum'
               - '.golangci.yml'
+              - '.github/workflows/go-ci.yml'
+              - '.github/workflows/ci-for-any-pr.yml'
             e2e-tests:
               - 'e2e/**'
               - 'compose.yml'
               - 'compose.dev.yml'
               - 'compose.ci.yml'
               - 'Dockerfile'
+              - 'Dockerfile.e2e'
               - '.env.example'
               - 'config/**'
               - 'migrations/**'
               - '**/*.go'
               - 'go.mod'
               - 'go.sum'
+              - '.github/workflows/e2e-test.yml'
+              - '.github/workflows/ci-for-any-pr.yml'
             helm-charts:
               - 'helm/**'
+              - '.github/workflows/helm-ci.yml'
+              - '.github/workflows/ci-for-any-pr.yml'
 
   ci-go:
     needs: detect-changes
