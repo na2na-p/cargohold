@@ -10,7 +10,10 @@ on:
         default: 30
 
 env:
+  # renovate: datasource=golang-version depName=go
   GO_VERSION: "1.25.5"
+  # renovate: datasource=github-releases depName=docker/compose
+  DOCKER_COMPOSE_VERSION: "v5.0.0"
   COMPOSE_FILE: "compose.yml:compose.dev.yml:compose.ci.yml"
 
 jobs:
@@ -42,7 +45,7 @@ jobs:
       - name: Install Docker Compose
         run: |
           mkdir -p ~/.docker/cli-plugins
-          curl -SL https://github.com/docker/compose/releases/download/v5.0.0/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
+          curl -SL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-x86_64" -o ~/.docker/cli-plugins/docker-compose
           chmod +x ~/.docker/cli-plugins/docker-compose
           docker compose version
 

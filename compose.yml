@@ -22,7 +22,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cargohold_dev_password}
       POSTGRES_DB: cargohold
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # postgres 18+ の公式イメージは PGDATA をメジャーバージョン別ディレクトリ
+      # (/var/lib/postgresql/18/docker) に置く。旧来の /var/lib/postgresql/data へ
+      # 直接マウントすると "unused mount/volume" として起動時に fatal error になる
+      # https://github.com/docker-library/postgres/pull/1259
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U cargohold"]
       interval: 10s
