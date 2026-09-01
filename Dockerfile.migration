@@ -7,7 +7,7 @@ RUN apk add --no-cache git ca-certificates
 # Install goose for database migrations
 RUN CGO_ENABLED=0 go install github.com/pressly/goose/v3/cmd/goose@latest
 
-FROM alpine:3.23
+FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 
 LABEL description="cargohold-migration - Database Migration Tool"
 
