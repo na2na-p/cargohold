@@ -13,7 +13,7 @@ env:
   # renovate: datasource=golang-version depName=go
   GO_VERSION: "1.25.5"
   # renovate: datasource=github-releases depName=docker/compose
-  DOCKER_COMPOSE_VERSION: "v5.0.0"
+  DOCKER_COMPOSE_VERSION: "v5.5.0"
   COMPOSE_FILE: "compose.yml:compose.dev.yml:compose.ci.yml"
 
 jobs:
