@@ -10,7 +10,7 @@
 
 services:
   jwks-mock:
-    image: nginx:alpine
+    image: nginx:alpine@sha256:72ba65eb42c10344912a84ff42408db7d34f2feb642204570ab8fc5ffd29f1d3
     container_name: cargohold-jwks-mock
     ports:
       - "8888:80"
@@ -46,7 +46,7 @@ services:
       - cargohold-network
 
   s3-init:
-    image: amazon/aws-cli:latest
+    image: amazon/aws-cli:latest@sha256:b6aeb95d19d7f5a8cae4eb814cb16739b6b2a4f2f46f427ada6a8c9a20d9881d
     container_name: cargohold-s3-init
     environment:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
