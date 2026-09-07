@@ -16,7 +16,7 @@ on:
 
 env:
   # renovate: datasource=github-releases depName=helm/helm
-  HELM_VERSION: "v3.19.4"
+  HELM_VERSION: "v3.21.4"
 
 jobs:
   helm-lint:
