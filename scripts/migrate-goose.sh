@@ -12,13 +12,16 @@ SSL_MODE="${DATABASE_SSLMODE:-disable}"
 
 MIGRATIONS_DIR="${MIGRATIONS_DIR:-/app/migrations}"
 
-# Build database connection string
-# Format: postgres://user:password@host:port/dbname?sslmode=disable
-if [ -n "$POSTGRES_PASSWORD" ]; then
-	DBSTRING="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=${SSL_MODE}"
-else
-	DBSTRING="postgres://${POSTGRES_USER}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=${SSL_MODE}"
-fi
+# pgxにPostgreSQLの環境変数を直接解釈させ、URL予約文字を含むIAMユーザー名と
+# パスワードがURL構文として解釈されないようにする。
+export PGHOST="$POSTGRES_HOST"
+export PGPORT="$POSTGRES_PORT"
+export PGUSER="$POSTGRES_USER"
+export PGPASSWORD="$POSTGRES_PASSWORD"
+export PGDATABASE="$POSTGRES_DB"
+export PGSSLMODE="$SSL_MODE"
+
+DBSTRING=""
 
 # Check if goose is available
 if ! command -v goose >/dev/null 2>&1; then

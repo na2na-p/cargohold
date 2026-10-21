@@ -32,6 +32,7 @@ jobs:
           filters: |
             go-code:
               - '**/*.go'
+              - 'scripts/migrate-goose.sh'
               - 'go.mod'
               - 'go.sum'
               - '.golangci.yml'
